@@ -3,25 +3,35 @@ import { AlertCircle, Zap, Search, Loader2 } from 'lucide-react';
 import categoriesData from './categories.json';
 
 /**
- * Clasificador de Servicios con IA
+ * Clasificador de Servicios con IA - Multi-Matcher Strategy
  * 
- * Este componente usa embeddings semánticos multilingües + búsqueda fuzzy para clasificar servicios.
+ * Este componente implementa un sistema avanzado de clasificación inspirado en los samples:
  * 
- * Mejoras implementadas:
+ * ARQUITECTURA:
+ * - Combina 3 matchers independientes con weighted voting:
+ *   1. Keyword Matcher: Coincidencias exactas y substring matching
+ *   2. Fuzzy Matcher: Levenshtein distance para variaciones ortográficas
+ *   3. Embedding Matcher: Similitud semántica con multilingual-e5-small
+ * 
+ * MEJORAS IMPLEMENTADAS:
  * - Modelo: multilingual-e5-small con prefijos "query:" y "passage:" (best practice)
- * - Usa TODOS los sinónimos para mejor contexto semántico
- * - Búsqueda fuzzy en sinónimos para coincidencias directas (prioriza matches exactos)
- * - Combina scores: 80% embeddings + 20% fuzzy (60% fuzzy si match > 0.7)
+ * - Multi-matcher con pesos adaptativos (35% keyword, 30% fuzzy, 35% embedding)
+ * - Position-based weighting para mejorar ranking (inspirado en search_engine.py)
+ * - Levenshtein distance para fuzzy matching robusto
+ * - Confidence threshold filtering (mínimo 15%)
+ * - Score breakdown detallado en la UI
+ * - Pesos dinámicos: aumenta peso de keyword si match >80%, fuzzy si >85%
  */
 const ServiceClassifier = () => {
   const [input, setInput] = useState('');
-  const [result, setResult] = useState<Array<{ category: string; score: number }> | null>(null);
+  const [result, setResult] = useState<Array<{ category: string; score: number; embeddingScore: number; fuzzyScore: number; keywordScore: number }> | null>(null);
   const [loading, setLoading] = useState(false);
   const [modelLoading, setModelLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [webGPUSupported, setWebGPUSupported] = useState<boolean | null>(null);
   const [extractor, setExtractor] = useState<any>(null);
   const [categoryEmbeddings, setCategoryEmbeddings] = useState<any>(null);
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const isLoadingRef = useRef(false);
 
   // Crear etiquetas enriquecidas con sinónimos para mejor contexto
@@ -163,30 +173,107 @@ const ServiceClassifier = () => {
     return dotProduct / (magnitudeA * magnitudeB);
   };
 
-  // Función para buscar coincidencias fuzzy en sinónimos
+  // Función para keyword matching (coincidencias exactas/substring)
+  const keywordMatch = (query: string, synonyms: string[]): number => {
+    const queryLower = query.toLowerCase().trim();
+    const queryWords = queryLower.split(/\s+/);
+    
+    let matchCount = 0;
+    let maxWordLength = 0;
+    
+    for (const synonym of synonyms) {
+      const synLower = synonym.toLowerCase();
+      
+      // Coincidencia exacta completa - score muy alto
+      if (synLower === queryLower) {
+        return 1.0;
+      }
+      
+      // Coincidencia de substring
+      if (synLower.includes(queryLower)) {
+        return 0.95;
+      }
+      
+      if (queryLower.includes(synLower)) {
+        return 0.9;
+      }
+      
+      // Contar palabras individuales que coinciden
+      for (const word of queryWords) {
+        if (word.length >= 3 && synLower.includes(word)) {
+          matchCount++;
+          maxWordLength = Math.max(maxWordLength, word.length);
+        }
+      }
+    }
+    
+    // Score basado en número de matches y longitud de palabras
+    if (matchCount > 0) {
+      return Math.min(0.7 * (matchCount / queryWords.length) + 0.1 * (maxWordLength / 10), 0.85);
+    }
+    
+    return 0;
+  };
+
+  // Función mejorada para fuzzy matching usando Levenshtein distance
+  const levenshteinDistance = (a: string, b: string): number => {
+    const matrix: number[][] = [];
+    
+    for (let i = 0; i <= b.length; i++) {
+      matrix[i] = [i];
+    }
+    
+    for (let j = 0; j <= a.length; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    
+    return matrix[b.length][a.length];
+  };
+
+  // Fuzzy matching mejorado con Levenshtein distance
   const fuzzyMatch = (query: string, synonyms: string[]): number => {
     const queryLower = query.toLowerCase().trim();
     const queryWords = queryLower.split(/\s+/);
     
     let bestScore = 0;
+    const threshold = 80; // Umbral mínimo de similitud (0-100)
     
     for (const synonym of synonyms) {
       const synLower = synonym.toLowerCase();
       
-      // Coincidencia exacta completa
-      if (synLower === queryLower) {
-        return 1.0;
+      // Calcular ratio de similitud (0-100)
+      const maxLen = Math.max(queryLower.length, synLower.length);
+      const distance = levenshteinDistance(queryLower, synLower);
+      const ratio = ((maxLen - distance) / maxLen) * 100;
+      
+      if (ratio > threshold) {
+        bestScore = Math.max(bestScore, ratio / 100);
       }
       
-      // Coincidencia exacta de palabra
-      if (synLower.includes(queryLower) || queryLower.includes(synLower)) {
-        bestScore = Math.max(bestScore, 0.9);
-      }
-      
-      // Coincidencia de palabras individuales
+      // También comparar palabras individuales
       for (const word of queryWords) {
-        if (word.length >= 3 && synLower.includes(word)) {
-          bestScore = Math.max(bestScore, 0.7);
+        if (word.length >= 3) {
+          const wordMaxLen = Math.max(word.length, synLower.length);
+          const wordDistance = levenshteinDistance(word, synLower);
+          const wordRatio = ((wordMaxLen - wordDistance) / wordMaxLen) * 100;
+          
+          if (wordRatio > threshold) {
+            bestScore = Math.max(bestScore, wordRatio / 100 * 0.8);
+          }
         }
       }
     }
@@ -213,7 +300,7 @@ const ServiceClassifier = () => {
       
       console.log('[CLASSIFY] Calculando similitudes y fuzzy matches...');
       
-      // Calcular similitud con cada categoría
+      // Multi-matcher strategy: combinar keyword, fuzzy y embedding
       const similarities = categoryEmbeddings.map((catEmb: any, idx: number) => {
         const catVector = Array.from(catEmb.data) as number[];
         const embeddingSimilarity = cosineSimilarity(inputVector, catVector);
@@ -222,33 +309,92 @@ const ServiceClassifier = () => {
         const categoryName = categoryLabels[idx].split(':')[0].trim();
         const synonyms = categoriesWithSynonyms[idx].synonyms;
         
-        // Calcular fuzzy match score
+        // Calcular scores de los 3 matchers
+        const keywordScore = keywordMatch(input, synonyms);
         const fuzzyScore = fuzzyMatch(input, synonyms);
-        
-        // Combinar scores: 70% embedding + 30% fuzzy
-        // Si hay fuzzy match alto (>0.7), darle más peso
-        let finalScore;
-        if (fuzzyScore >= 0.7) {
-          finalScore = 0.4 * embeddingSimilarity + 0.6 * fuzzyScore;
-        } else {
-          finalScore = 0.8 * embeddingSimilarity + 0.2 * fuzzyScore;
-        }
         
         return {
           category: categoryName,
-          score: finalScore,
           embeddingScore: embeddingSimilarity,
-          fuzzyScore: fuzzyScore
+          fuzzyScore: fuzzyScore,
+          keywordScore: keywordScore,
+          score: 0 // Se calculará después con weighted voting
         };
       });
       
-      // Ordenar por similitud descendente
+      // Weighted voting con pesos configurables
+      const weights = {
+        keyword: 0.35,   // Coincidencias exactas son muy importantes
+        fuzzy: 0.30,     // Fuzzy matching para variaciones
+        embedding: 0.35  // Semántica para entender contexto
+      };
+      
+      // Si hay keyword match fuerte, ajustar pesos
+      similarities.forEach((item: any) => {
+        let finalWeights = { ...weights };
+        
+        // Si hay keyword match fuerte (>0.8), aumentar su peso
+        if (item.keywordScore >= 0.8) {
+          finalWeights = {
+            keyword: 0.50,
+            fuzzy: 0.20,
+            embedding: 0.30
+          };
+        }
+        // Si hay fuzzy match fuerte (>0.85), ajustar pesos
+        else if (item.fuzzyScore >= 0.85) {
+          finalWeights = {
+            keyword: 0.25,
+            fuzzy: 0.45,
+            embedding: 0.30
+          };
+        }
+        
+        // Calcular score final combinado
+        item.score = (
+          item.keywordScore * finalWeights.keyword +
+          item.fuzzyScore * finalWeights.fuzzy +
+          item.embeddingScore * finalWeights.embedding
+        );
+      });
+      
+      // Ordenar por score combinado descendente
       similarities.sort((a: any, b: any) => b.score - a.score);
       
-      // Tomar top 10
-      const topResults = similarities.slice(0, 10);
+      // Aplicar position-based weighting (inspirado en los samples)
+      const positionWeightedResults = similarities.map((item: any, idx: number) => {
+        const positionWeight = 1.0 / (idx + 1);
+        return {
+          ...item,
+          finalScore: item.score * (0.7 + 0.3 * positionWeight) // 70% score original + 30% bonus por posición
+        };
+      });
       
-      console.log('[CLASSIFY] Top 3 resultados:', topResults.slice(0, 3));
+      // Re-ordenar con scores ajustados por posición
+      positionWeightedResults.sort((a: any, b: any) => b.finalScore - a.finalScore);
+      
+      // Filtrar por confianza mínima (threshold)
+      const minConfidence = 0.15; // Umbral mínimo
+      const filteredResults = positionWeightedResults.filter((item: any) => item.finalScore >= minConfidence);
+      
+      // Tomar top 10
+      const topResults = filteredResults.slice(0, 10).map((item: any) => ({
+        category: item.category,
+        score: item.finalScore,
+        embeddingScore: item.embeddingScore,
+        fuzzyScore: item.fuzzyScore,
+        keywordScore: item.keywordScore
+      }));
+      
+      console.log('[CLASSIFY] Top 3 resultados:');
+      topResults.slice(0, 3).forEach((r: any, i: number) => {
+        console.log(`  ${i+1}. ${r.category}:`, {
+          final: (r.score * 100).toFixed(1) + '%',
+          keyword: (r.keywordScore * 100).toFixed(1) + '%',
+          fuzzy: (r.fuzzyScore * 100).toFixed(1) + '%',
+          embedding: (r.embeddingScore * 100).toFixed(1) + '%'
+        });
+      });
       setResult(topResults);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -304,9 +450,11 @@ const ServiceClassifier = () => {
 
           {/* Categories */}
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Categorías disponibles:</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+              Categorías disponibles ({categories.length}):
+            </h3>
             <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
+              {(showAllCategories ? categories : categories.slice(0, 20)).map((cat) => (
                 <span
                   key={cat}
                   className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium"
@@ -314,6 +462,22 @@ const ServiceClassifier = () => {
                   {cat}
                 </span>
               ))}
+              {!showAllCategories && categories.length > 20 && (
+                <button
+                  onClick={() => setShowAllCategories(true)}
+                  className="px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm font-bold hover:from-purple-200 hover:to-pink-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  +{categories.length - 20} más
+                </button>
+              )}
+              {showAllCategories && (
+                <button
+                  onClick={() => setShowAllCategories(false)}
+                  className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Mostrar menos
+                </button>
+              )}
             </div>
           </div>
 
@@ -379,13 +543,28 @@ const ServiceClassifier = () => {
                         {(item.score * 100).toFixed(1)}%
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                       <div
                         className={`h-2 rounded-full transition-all ${
                           idx === 0 ? 'bg-green-500' : 'bg-gray-400'
                         }`}
                         style={{ width: `${item.score * 100}%` }}
                       />
+                    </div>
+                    {/* Score breakdown */}
+                    <div className="flex gap-2 text-xs mt-2">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-blue-600">Keyword:</span>
+                        <span className="text-gray-600">{(item.keywordScore * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-purple-600">Fuzzy:</span>
+                        <span className="text-gray-600">{(item.fuzzyScore * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-orange-600">Semantic:</span>
+                        <span className="text-gray-600">{(item.embeddingScore * 100).toFixed(0)}%</span>
+                      </div>
                     </div>
                   </div>
                 ))}
