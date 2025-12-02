@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AlertCircle, Zap, Search, Loader2 } from 'lucide-react';
 import categoriesData from './categories.json';
 
