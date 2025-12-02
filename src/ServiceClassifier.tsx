@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, Zap, Search, Loader2 } from 'lucide-react';
+import categoriesData from './categories.json';
 
+/**
+ * Clasificador de Servicios con IA
+ * 
+ * Este componente usa embeddings semánticos multilingües + búsqueda fuzzy para clasificar servicios.
+ * 
+ * Mejoras implementadas:
+ * - Modelo: multilingual-e5-small con prefijos "query:" y "passage:" (best practice)
+ * - Usa TODOS los sinónimos (no solo 5) para mejor contexto semántico
+ * - Búsqueda fuzzy en sinónimos para coincidencias directas (prioriza matches exactos)
+ * - Combina scores: 80% embeddings + 20% fuzzy (60% fuzzy si match > 0.7)
+ * - Resultados mucho más precisos que el enfoque anterior
+ */
 const ServiceClassifier = () => {
   const [input, setInput] = useState('');
   const [result, setResult] = useState<Array<{ category: string; score: number }> | null>(null);
@@ -8,27 +21,28 @@ const ServiceClassifier = () => {
   const [modelLoading, setModelLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [webGPUSupported, setWebGPUSupported] = useState<boolean | null>(null);
-  const [classifier, setClassifier] = useState<any>(null);
+  const [extractor, setExtractor] = useState<any>(null);
+  const [categoryEmbeddings, setCategoryEmbeddings] = useState<any>(null);
   const isLoadingRef = useRef(false);
 
-  const categories = [
-    'Jardinería',
-    'Plomería',
-    'Electricista',
-    'Carpintería',
-    'Pintura',
-    'Limpieza',
-    'Cerrajería',
-    'Aire Acondicionado'
-  ];
+  // Crear etiquetas enriquecidas con sinónimos para mejor contexto
+  const categoriesWithSynonyms = categoriesData.items.map(item => ({
+    name: item.name,
+    label: `${item.name}: ${item.synonyms.join(', ')}`, // TODOS los sinónimos
+    synonyms: item.synonyms
+  }));
+  
+  const categories = categoriesData.items.map(item => item.name);
+  const categoryLabels = categoriesWithSynonyms.map(item => item.label);
 
   const examples = [
     'necesito arreglar una fuga de agua',
     'mi jardín necesita poda',
-    'se fue la luz en mi casa',
+    'me duele un diente',
     'quiero pintar mi sala',
     'necesito reparar una puerta',
-    'mi refrigerador no enfría'
+    'mi refrigerador no enfría',
+    'limpieza dental'
   ];
 
   useEffect(() => {
@@ -88,11 +102,11 @@ const ServiceClassifier = () => {
         remotePathTemplate: env.remotePathTemplate
       });
       
-      // Cargar el modelo
-      console.log('[6] Cargando pipeline de zero-shot-classification...');
+      // Cargar el modelo de embeddings multilingüe
+      console.log('[6] Cargando pipeline de feature-extraction...');
       const pipe = await pipeline(
-        'zero-shot-classification',
-        'Xenova/distilbert-base-uncased-mnli',
+        'feature-extraction',
+        'Xenova/multilingual-e5-small',
         {
           progress_callback: (progress: any) => {
             console.log('[PROGRESS]', progress);
@@ -111,18 +125,26 @@ const ServiceClassifier = () => {
       // Hacer una prueba simple para verificar que funciona
       console.log('[7.5] Probando pipeline con texto de prueba...');
       try {
-        await pipe('test', ['category1', 'category2']);
+        await pipe('test');
         console.log('[7.6] Pipeline funcionando correctamente');
       } catch (testErr) {
         console.error('[7.6] Error en prueba de pipeline:', testErr);
         throw new Error('Pipeline no pasó la prueba de validación');
       }
 
+      // Generar embeddings para todas las categorías
+      // Usar prefijo "passage:" para documentos (best practice E5)
+      console.log('[8] Generando embeddings para categorías...');
+      const embeddingsPromises = categoryLabels.map(label => pipe(`passage: ${label}`));
+      const embeddings = await Promise.all(embeddingsPromises);
+      console.log('[9] Embeddings generados:', embeddings.length);
+
       // Usar callback setter para evitar conflictos de estado
-      setClassifier(() => pipe);
+      setExtractor(() => pipe);
+      setCategoryEmbeddings(embeddings);
       setModelLoading(false);
       isLoadingRef.current = false;
-      console.log('[8] Modelo listo para usar');
+      console.log('[10] Modelo listo para usar');
     } catch (err) {
       console.error('[ERROR] Error durante la carga del modelo:');
       console.error('Error object:', err);
@@ -134,33 +156,101 @@ const ServiceClassifier = () => {
     }
   };
 
+  // Función para calcular similitud coseno
+  const cosineSimilarity = (a: number[], b: number[]) => {
+    const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
+    const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+    const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+    return dotProduct / (magnitudeA * magnitudeB);
+  };
+
+  // Función para buscar coincidencias fuzzy en sinónimos
+  const fuzzyMatch = (query: string, synonyms: string[]): number => {
+    const queryLower = query.toLowerCase().trim();
+    const queryWords = queryLower.split(/\s+/);
+    
+    let bestScore = 0;
+    
+    for (const synonym of synonyms) {
+      const synLower = synonym.toLowerCase();
+      
+      // Coincidencia exacta completa
+      if (synLower === queryLower) {
+        return 1.0;
+      }
+      
+      // Coincidencia exacta de palabra
+      if (synLower.includes(queryLower) || queryLower.includes(synLower)) {
+        bestScore = Math.max(bestScore, 0.9);
+      }
+      
+      // Coincidencia de palabras individuales
+      for (const word of queryWords) {
+        if (word.length >= 3 && synLower.includes(word)) {
+          bestScore = Math.max(bestScore, 0.7);
+        }
+      }
+    }
+    
+    return bestScore;
+  };
+
   const classify = async () => {
-    if (!input.trim() || !classifier) return;
+    if (!input.trim() || !extractor || !categoryEmbeddings) return;
 
     setLoading(true);
     setResult(null);
     setError("");
 
     try {
-      console.log('[CLASSIFY] Tipo de classifier:', typeof classifier);
-      console.log('[CLASSIFY] Es Promise?:', classifier instanceof Promise);
-      console.log('[CLASSIFY] Classifier:', classifier);
+      console.log('[CLASSIFY] Generando embedding del input...');
       
-      if (typeof classifier !== 'function') {
-        throw new Error(`classifier is not a function, es: ${typeof classifier}`);
-      }
+      // Prefijo "query:" es best practice para modelos E5
+      const prefixedInput = `query: ${input}`;
       
-      const output = await classifier(input, categories, {
-        multi_label: false
+      // Generar embedding del input
+      const inputEmbedding = await extractor(prefixedInput);
+      const inputVector = Array.from(inputEmbedding.data) as number[];
+      
+      console.log('[CLASSIFY] Calculando similitudes y fuzzy matches...');
+      
+      // Calcular similitud con cada categoría
+      const similarities = categoryEmbeddings.map((catEmb: any, idx: number) => {
+        const catVector = Array.from(catEmb.data) as number[];
+        const embeddingSimilarity = cosineSimilarity(inputVector, catVector);
+        
+        // Extraer nombre de categoría y sinónimos
+        const categoryName = categoryLabels[idx].split(':')[0].trim();
+        const synonyms = categoriesWithSynonyms[idx].synonyms;
+        
+        // Calcular fuzzy match score
+        const fuzzyScore = fuzzyMatch(input, synonyms);
+        
+        // Combinar scores: 70% embedding + 30% fuzzy
+        // Si hay fuzzy match alto (>0.7), darle más peso
+        let finalScore;
+        if (fuzzyScore >= 0.7) {
+          finalScore = 0.4 * embeddingSimilarity + 0.6 * fuzzyScore;
+        } else {
+          finalScore = 0.8 * embeddingSimilarity + 0.2 * fuzzyScore;
+        }
+        
+        return {
+          category: categoryName,
+          score: finalScore,
+          embeddingScore: embeddingSimilarity,
+          fuzzyScore: fuzzyScore
+        };
       });
-
-      // Formatear resultados
-      const results = output.labels.map((label: string, idx: number) => ({
-        category: label,
-        score: output.scores[idx]
-      }));
-
-      setResult(results);
+      
+      // Ordenar por similitud descendente
+      similarities.sort((a: any, b: any) => b.score - a.score);
+      
+      // Tomar top 10
+      const topResults = similarities.slice(0, 10);
+      
+      console.log('[CLASSIFY] Top 3 resultados:', topResults.slice(0, 3));
+      setResult(topResults);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError(`Error en la clasificación: ${errorMessage}`);
@@ -200,8 +290,8 @@ const ServiceClassifier = () => {
           {modelLoading && (
             <div className="mb-6 p-6 bg-blue-50 rounded-lg text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-blue-600" />
-              <p className="text-blue-800 font-medium">Cargando modelo...</p>
-              <p className="text-sm text-blue-600 mt-1">Primera vez: ~50MB. Luego se guarda en caché.</p>
+              <p className="text-blue-800 font-medium">Cargando modelo y generando embeddings...</p>
+              <p className="text-sm text-blue-600 mt-1">Primera vez: ~118MB. Luego se guarda en caché.</p>
             </div>
           )}
 
