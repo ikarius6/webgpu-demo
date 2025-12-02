@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { AlertCircle, Zap, Search, Loader2 } from 'lucide-react';
+import { AlertCircle, Zap, Search, Loader2, Github } from 'lucide-react';
 import categoriesData from './categories.json';
 
 /**
@@ -413,9 +413,21 @@ const ServiceClassifier = () => {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              Clasificador de Servicios
-            </h1>
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="text-3xl font-bold text-gray-800">
+                Clasificador de Servicios
+              </h1>
+              <a
+                href="https://github.com/ikarius6/webgpu-demo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors shadow-md hover:shadow-lg"
+                title="Ver repositorio en GitHub"
+              >
+                <Github className="w-5 h-5" />
+                <span className="font-medium">GitHub</span>
+              </a>
+            </div>
             <p className="text-gray-600">
               Escribe lo que necesitas y el modelo te sugerirá el servicio más apropiado
             </p>
