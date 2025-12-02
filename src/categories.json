@@ -1087,6 +1087,7 @@
         "odontólogo",
         "dental",
         "dientes",
+        "muela",
         "limpieza dental",
         "ortodoncia"
       ]
@@ -1983,6 +1984,7 @@
       "name": "Imprenta",
       "synonyms": [
         "imprenta",
+        "imprimir",
         "impresion",
         "tipografia",
         "grafica",
@@ -1991,7 +1993,8 @@
         "periodicos",
         "carteles",
         "volantes",
-        "folletos"
+        "folletos",
+        "tarjetas"
       ]
     },
     {
@@ -3578,7 +3581,9 @@
         "custodia",
         "proteccion",
         "guardias",
-        "resguardo"
+        "resguardo",
+        "cámaras",
+        "alarma"
       ]
     },
     {
@@ -4141,6 +4146,7 @@
       "id": 175,
       "name": "Traductores",
       "synonyms": [
+        "traducir",
         "traductor",
         "traducción",
         "idiomas",

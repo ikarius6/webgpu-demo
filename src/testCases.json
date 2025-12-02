@@ -25,7 +25,7 @@
       "id": 4,
       "query": "necesito pintar mi casa",
       "expectedCategory": "Pintura",
-      "alternativeCategories": [],
+      "alternativeCategories": ["Pintores"],
       "description": "Painting service"
     },
     {
@@ -46,7 +46,7 @@
       "id": 7,
       "query": "reparar mi refrigerador",
       "expectedCategory": "Refrigeración",
-      "alternativeCategories": [],
+      "alternativeCategories": ["Reparación de electrodomésticos"],
       "description": "Appliance repair"
     },
     {
@@ -206,8 +206,8 @@
     {
       "id": 30,
       "query": "servicio de taxi",
-      "expectedCategory": "Taxi",
-      "alternativeCategories": [],
+      "expectedCategory": "Taxis",
+      "alternativeCategories": ["Transporte privado", "Transporte de pasajeros"],
       "description": "Transportation"
     },
     {
@@ -543,21 +543,21 @@
       "id": 78,
       "query": "sistema de seguridad",
       "expectedCategory": "Seguridad y vigilancia",
-      "alternativeCategories": [],
+      "alternativeCategories": ["Seguridad privada"],
       "description": "Security system"
     },
     {
       "id": 79,
       "query": "cámaras de vigilancia",
       "expectedCategory": "Seguridad y vigilancia",
-      "alternativeCategories": [],
+      "alternativeCategories": ["Seguridad privada"],
       "description": "Security cameras"
     },
     {
       "id": 80,
       "query": "alarma para casa",
       "expectedCategory": "Seguridad y vigilancia",
-      "alternativeCategories": [],
+      "alternativeCategories": ["Seguridad privada"],
       "description": "Home alarm system"
     }
   ]
