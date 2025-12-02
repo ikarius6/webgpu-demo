@@ -3,6 +3,7 @@ import { Play, Download, Loader2, BarChart3, AlertCircle } from 'lucide-react';
 import categoriesData from './categories.json';
 import testCasesData from './testCases.json';
 import modelsConfig from './modelsConfig.json';
+import WeightControls from './WeightControls';
 
 interface TestCase {
   id: number;
@@ -43,6 +44,7 @@ const ModelComparison = () => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string>("");
   const [selectedModels, setSelectedModels] = useState<string[]>(['multilingual-e5-small']);
+  const [weights, setWeights] = useState({ keyword: 0.35, fuzzy: 0.30, embedding: 0.35 });
 
   const categoriesWithSynonyms = categoriesData.items.map(item => ({
     name: item.name,
@@ -193,7 +195,7 @@ const ModelComparison = () => {
     return bestScore;
   };
 
-  const classifyQuery = async (query: string, extractor: any, categoryEmbeddings: any, requiresPrefixes: boolean) => {
+  const classifyQuery = async (query: string, extractor: any, categoryEmbeddings: any, requiresPrefixes: boolean, customWeights = weights) => {
     const prefix = requiresPrefixes ? 'query: ' : '';
     const prefixedInput = `${prefix}${query}`;
     
@@ -222,10 +224,10 @@ const ModelComparison = () => {
       };
     });
     
-    const weights = { keyword: 0.35, fuzzy: 0.30, embedding: 0.35 };
+    const baseWeights = customWeights;
     
     similarities.forEach((item: any) => {
-      let finalWeights = { ...weights };
+      let finalWeights = { ...baseWeights };
       
       if (item.keywordScore >= 0.8) {
         finalWeights = { keyword: 0.50, fuzzy: 0.20, embedding: 0.30 };
@@ -286,7 +288,8 @@ const ModelComparison = () => {
         testCase.query,
         pipe,
         embeddings,
-        modelConfig.requiresPrefixes
+        modelConfig.requiresPrefixes,
+        weights
       );
       
       totalInferenceTime += inferenceTime;
@@ -401,6 +404,14 @@ const ModelComparison = () => {
               <p className="text-red-800 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Weight Controls */}
+          <WeightControls
+            weights={weights}
+            setWeights={setWeights}
+            disabled={testing}
+            defaultCollapsed={false}
+          />
 
           {/* Model Selection */}
           <div className="mb-6">

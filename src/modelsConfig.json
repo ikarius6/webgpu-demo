@@ -1,17 +1,6 @@
 {
   "models": [
     {
-      "id": "multilingual-e5-small",
-      "name": "Multilingual E5 Small",
-      "huggingFaceId": "Xenova/multilingual-e5-small",
-      "size": "118MB",
-      "dimensions": 384,
-      "requiresPrefixes": true,
-      "description": "Modelo actual - rendimiento equilibrado",
-      "recommended": false,
-      "category": "E5 Family"
-    },
-    {
       "id": "all-minilm-l6-v2",
       "name": "All-MiniLM L6 v2",
       "huggingFaceId": "Xenova/all-MiniLM-L6-v2",
@@ -21,6 +10,17 @@
       "description": "Opción más ligera, enfocado en inglés",
       "recommended": true,
       "category": "MiniLM Family"
+    },
+    {
+      "id": "multilingual-e5-small",
+      "name": "Multilingual E5 Small",
+      "huggingFaceId": "Xenova/multilingual-e5-small",
+      "size": "118MB",
+      "dimensions": 384,
+      "requiresPrefixes": true,
+      "description": "Modelo actual - rendimiento equilibrado",
+      "recommended": false,
+      "category": "E5 Family"
     },
     {
       "id": "all-minilm-l12-v2",

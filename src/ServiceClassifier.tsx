@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AlertCircle, Zap, Search, Loader2, Github } from 'lucide-react';
 import categoriesData from './categories.json';
 import modelsConfig from './modelsConfig.json';
+import WeightControls from './WeightControls';
 
 /**
  * Clasificador de Servicios con IA - Multi-Matcher Strategy
@@ -34,6 +35,7 @@ const ServiceClassifier = () => {
   const [categoryEmbeddings, setCategoryEmbeddings] = useState<any>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState('');
+  const [weights, setWeights] = useState({ keyword: 0.35, fuzzy: 0.30, embedding: 0.35 });
   const isLoadingRef = useRef(false);
   const availableModels = modelsConfig.models;
   const selectedModel = availableModels.find(m => m.id === selectedModelId);
@@ -344,15 +346,11 @@ const ServiceClassifier = () => {
       });
       
       // Weighted voting con pesos configurables
-      const weights = {
-        keyword: 0.35,   // Coincidencias exactas son muy importantes
-        fuzzy: 0.30,     // Fuzzy matching para variaciones
-        embedding: 0.35  // Semántica para entender contexto
-      };
+      const baseWeights = weights;
       
       // Si hay keyword match fuerte, ajustar pesos
       similarities.forEach((item: any) => {
-        let finalWeights = { ...weights };
+        let finalWeights = { ...baseWeights };
         
         // Si hay keyword match fuerte (>0.8), aumentar su peso
         if (item.keywordScore >= 0.8) {
@@ -480,6 +478,14 @@ const ServiceClassifier = () => {
               <p className="text-red-800 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Weight Controls */}
+          <WeightControls
+            weights={weights}
+            setWeights={setWeights}
+            disabled={modelLoading || loading}
+            defaultCollapsed={true}
+          />
 
           {/* Model Selector */}
           <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">

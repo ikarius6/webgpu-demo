@@ -3,6 +3,7 @@ import { Play, Download, Loader2, CheckCircle, XCircle, AlertCircle } from 'luci
 import categoriesData from './categories.json';
 import testCasesData from './testCases.json';
 import modelsConfig from './modelsConfig.json';
+import WeightControls from './WeightControls';
 
 interface TestCase {
   id: number;
@@ -41,6 +42,7 @@ const ModelTester = () => {
   const [extractor, setExtractor] = useState<any>(null);
   const [categoryEmbeddings, setCategoryEmbeddings] = useState<any>(null);
   const [selectedModelId, setSelectedModelId] = useState('');
+  const [weights, setWeights] = useState({ keyword: 0.35, fuzzy: 0.30, embedding: 0.35 });
   const isLoadingRef = useRef(false);
   const availableModels = modelsConfig.models;
   const selectedModel = availableModels.find(m => m.id === selectedModelId);
@@ -247,7 +249,7 @@ const ModelTester = () => {
   };
 
   // Classify a single query (same logic as ServiceClassifier)
-  const classifyQuery = async (query: string) => {
+  const classifyQuery = async (query: string, customWeights = weights) => {
     if (!extractor || !categoryEmbeddings) {
       throw new Error('Model not ready');
     }
@@ -277,14 +279,10 @@ const ModelTester = () => {
     });
     
     // Weighted voting
-    const weights = {
-      keyword: 0.35,
-      fuzzy: 0.30,
-      embedding: 0.35
-    };
+    const baseWeights = customWeights;
     
     similarities.forEach((item: any) => {
-      let finalWeights = { ...weights };
+      let finalWeights = { ...baseWeights };
       
       if (item.keywordScore >= 0.8) {
         finalWeights = { keyword: 0.50, fuzzy: 0.20, embedding: 0.30 };
@@ -345,7 +343,7 @@ const ModelTester = () => {
         const testCase = testCases[i];
         console.log(`[TEST ${i + 1}/${testCases.length}] Testing: "${testCase.query}"`);
 
-        const predictions = await classifyQuery(testCase.query);
+        const predictions = await classifyQuery(testCase.query, weights);
         
         // Check if correct answer is in top-k
         const allAcceptableAnswers = [testCase.expectedCategory, ...testCase.alternativeCategories];
@@ -456,6 +454,14 @@ const ModelTester = () => {
               <p className="text-red-800 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Weight Controls */}
+          <WeightControls
+            weights={weights}
+            setWeights={setWeights}
+            disabled={testing || modelLoading}
+            defaultCollapsed={true}
+          />
 
           {/* Model Selector */}
           <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
