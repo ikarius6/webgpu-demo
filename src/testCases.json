@@ -1,0 +1,564 @@
+{
+  "testCases": [
+    {
+      "id": 1,
+      "query": "necesito un plomero para arreglar una fuga",
+      "expectedCategory": "Plomería",
+      "alternativeCategories": ["Accesorios de drenaje"],
+      "description": "Basic plumbing query"
+    },
+    {
+      "id": 2,
+      "query": "me duele una muela",
+      "expectedCategory": "Dentistas",
+      "alternativeCategories": [],
+      "description": "Dental problem"
+    },
+    {
+      "id": 3,
+      "query": "limpieza dental",
+      "expectedCategory": "Dentistas",
+      "alternativeCategories": [],
+      "description": "Specific dental service"
+    },
+    {
+      "id": 4,
+      "query": "necesito pintar mi casa",
+      "expectedCategory": "Pintura",
+      "alternativeCategories": [],
+      "description": "Painting service"
+    },
+    {
+      "id": 5,
+      "query": "mi jardín necesita poda",
+      "expectedCategory": "Jardinería",
+      "alternativeCategories": [],
+      "description": "Gardening service"
+    },
+    {
+      "id": 6,
+      "query": "instalar aire acondicionado",
+      "expectedCategory": "Refrigeración",
+      "alternativeCategories": ["Instalación de climas", "Aire acondicionado"],
+      "description": "HVAC installation"
+    },
+    {
+      "id": 7,
+      "query": "reparar mi refrigerador",
+      "expectedCategory": "Refrigeración",
+      "alternativeCategories": [],
+      "description": "Appliance repair"
+    },
+    {
+      "id": 8,
+      "query": "electricista para instalar focos",
+      "expectedCategory": "Electricidad",
+      "alternativeCategories": ["Electricistas"],
+      "description": "Electrical work"
+    },
+    {
+      "id": 9,
+      "query": "corto circuito en mi casa",
+      "expectedCategory": "Electricidad",
+      "alternativeCategories": ["Electricistas"],
+      "description": "Electrical emergency"
+    },
+    {
+      "id": 10,
+      "query": "hacer muebles de madera",
+      "expectedCategory": "Carpintería",
+      "alternativeCategories": [],
+      "description": "Woodwork"
+    },
+    {
+      "id": 11,
+      "query": "reparar una puerta",
+      "expectedCategory": "Carpintería",
+      "alternativeCategories": [],
+      "description": "Door repair"
+    },
+    {
+      "id": 12,
+      "query": "abogado para divorcio",
+      "expectedCategory": "Abogados",
+      "alternativeCategories": [],
+      "description": "Legal service"
+    },
+    {
+      "id": 13,
+      "query": "asesoría legal",
+      "expectedCategory": "Abogados",
+      "alternativeCategories": [],
+      "description": "Legal consultation"
+    },
+    {
+      "id": 14,
+      "query": "construcción de casa",
+      "expectedCategory": "Albañilería",
+      "alternativeCategories": ["Albañiles"],
+      "description": "Construction work"
+    },
+    {
+      "id": 15,
+      "query": "hacer una barda",
+      "expectedCategory": "Albañilería",
+      "alternativeCategories": ["Albañiles"],
+      "description": "Wall construction"
+    },
+    {
+      "id": 16,
+      "query": "perdí las llaves de mi casa",
+      "expectedCategory": "Cerrajería",
+      "alternativeCategories": [],
+      "description": "Locksmith emergency"
+    },
+    {
+      "id": 17,
+      "query": "cambiar chapa de puerta",
+      "expectedCategory": "Cerrajería",
+      "alternativeCategories": [],
+      "description": "Lock replacement"
+    },
+    {
+      "id": 18,
+      "query": "fumigación de cucarachas",
+      "expectedCategory": "Control de plagas",
+      "alternativeCategories": [],
+      "description": "Pest control"
+    },
+    {
+      "id": 19,
+      "query": "tengo hormigas en la cocina",
+      "expectedCategory": "Control de plagas",
+      "alternativeCategories": [],
+      "description": "Ant infestation"
+    },
+    {
+      "id": 20,
+      "query": "limpiar mi casa",
+      "expectedCategory": "Limpieza del hogar",
+      "alternativeCategories": [],
+      "description": "House cleaning"
+    },
+    {
+      "id": 21,
+      "query": "servicio de lavandería",
+      "expectedCategory": "Lavanderías",
+      "alternativeCategories": [],
+      "description": "Laundry service"
+    },
+    {
+      "id": 22,
+      "query": "arreglar mi lavadora",
+      "expectedCategory": "Reparación de electrodomésticos",
+      "alternativeCategories": [],
+      "description": "Washing machine repair"
+    },
+    {
+      "id": 23,
+      "query": "diseñar un logo",
+      "expectedCategory": "Diseño gráfico",
+      "alternativeCategories": [],
+      "description": "Graphic design"
+    },
+    {
+      "id": 24,
+      "query": "crear una página web",
+      "expectedCategory": "Desarrollo web",
+      "alternativeCategories": [],
+      "description": "Web development"
+    },
+    {
+      "id": 25,
+      "query": "reparar mi computadora",
+      "expectedCategory": "Reparación de computadoras",
+      "alternativeCategories": ["Computadoras"],
+      "description": "Computer repair"
+    },
+    {
+      "id": 26,
+      "query": "clases de inglés",
+      "expectedCategory": "Clases particulares",
+      "alternativeCategories": [],
+      "description": "Language tutoring"
+    },
+    {
+      "id": 27,
+      "query": "fotógrafo para boda",
+      "expectedCategory": "Fotografía",
+      "alternativeCategories": [],
+      "description": "Wedding photography"
+    },
+    {
+      "id": 28,
+      "query": "video para evento",
+      "expectedCategory": "Videografía",
+      "alternativeCategories": [],
+      "description": "Event videography"
+    },
+    {
+      "id": 29,
+      "query": "mudanza de oficina",
+      "expectedCategory": "Mudanzas",
+      "alternativeCategories": [],
+      "description": "Moving service"
+    },
+    {
+      "id": 30,
+      "query": "servicio de taxi",
+      "expectedCategory": "Taxi",
+      "alternativeCategories": [],
+      "description": "Transportation"
+    },
+    {
+      "id": 31,
+      "query": "mecánico para mi carro",
+      "expectedCategory": "Mecánica automotriz",
+      "alternativeCategories": [],
+      "description": "Auto mechanic"
+    },
+    {
+      "id": 32,
+      "query": "cambiar aceite de motor",
+      "expectedCategory": "Mecánica automotriz",
+      "alternativeCategories": [],
+      "description": "Oil change"
+    },
+    {
+      "id": 33,
+      "query": "lavar mi auto",
+      "expectedCategory": "Lavado de autos",
+      "alternativeCategories": [],
+      "description": "Car wash"
+    },
+    {
+      "id": 34,
+      "query": "seguro de auto",
+      "expectedCategory": "Seguros",
+      "alternativeCategories": [],
+      "description": "Insurance"
+    },
+    {
+      "id": 35,
+      "query": "masaje relajante",
+      "expectedCategory": "Masajes",
+      "alternativeCategories": [],
+      "description": "Massage service"
+    },
+    {
+      "id": 36,
+      "query": "corte de cabello para hombre",
+      "expectedCategory": "Barberías",
+      "alternativeCategories": [],
+      "description": "Barbershop"
+    },
+    {
+      "id": 37,
+      "query": "peluquería para mujer",
+      "expectedCategory": "Salones de belleza",
+      "alternativeCategories": ["Estilistas"],
+      "description": "Hair salon"
+    },
+    {
+      "id": 38,
+      "query": "hacer ejercicio",
+      "expectedCategory": "Gimnasios",
+      "alternativeCategories": ["Entrenadores personales"],
+      "description": "Fitness"
+    },
+    {
+      "id": 39,
+      "query": "entrenador personal",
+      "expectedCategory": "Entrenadores personales",
+      "alternativeCategories": [],
+      "description": "Personal training"
+    },
+    {
+      "id": 40,
+      "query": "clases de yoga",
+      "expectedCategory": "Yoga",
+      "alternativeCategories": [],
+      "description": "Yoga classes"
+    },
+    {
+      "id": 41,
+      "query": "veterinario para mi perro",
+      "expectedCategory": "Veterinarios",
+      "alternativeCategories": [],
+      "description": "Veterinary service"
+    },
+    {
+      "id": 42,
+      "query": "vacunar a mi gato",
+      "expectedCategory": "Veterinarios",
+      "alternativeCategories": [],
+      "description": "Pet vaccination"
+    },
+    {
+      "id": 43,
+      "query": "estética canina",
+      "expectedCategory": "Estética canina",
+      "alternativeCategories": [],
+      "description": "Pet grooming"
+    },
+    {
+      "id": 44,
+      "query": "pasear mi perro",
+      "expectedCategory": "Paseadores de perros",
+      "alternativeCategories": [],
+      "description": "Dog walking"
+    },
+    {
+      "id": 45,
+      "query": "fiesta infantil",
+      "expectedCategory": "Animadores infantiles",
+      "alternativeCategories": [],
+      "description": "Children's party"
+    },
+    {
+      "id": 46,
+      "query": "payaso para cumpleaños",
+      "expectedCategory": "Animadores infantiles",
+      "alternativeCategories": [],
+      "description": "Birthday entertainment"
+    },
+    {
+      "id": 47,
+      "query": "banquete para boda",
+      "expectedCategory": "Banquetes",
+      "alternativeCategories": ["Catering"],
+      "description": "Wedding catering"
+    },
+    {
+      "id": 48,
+      "query": "comida para evento",
+      "expectedCategory": "Catering",
+      "alternativeCategories": ["Banquetes"],
+      "description": "Event catering"
+    },
+    {
+      "id": 49,
+      "query": "decoración para fiesta",
+      "expectedCategory": "Decoración de eventos",
+      "alternativeCategories": [],
+      "description": "Party decoration"
+    },
+    {
+      "id": 50,
+      "query": "sonido para evento",
+      "expectedCategory": "Renta de equipo de sonido",
+      "alternativeCategories": [],
+      "description": "Audio equipment rental"
+    },
+    {
+      "id": 51,
+      "query": "dj para fiesta",
+      "expectedCategory": "DJs",
+      "alternativeCategories": [],
+      "description": "DJ service"
+    },
+    {
+      "id": 52,
+      "query": "mariachi para serenata",
+      "expectedCategory": "Mariachis",
+      "alternativeCategories": [],
+      "description": "Mariachi band"
+    },
+    {
+      "id": 53,
+      "query": "rentar sillas",
+      "expectedCategory": "Renta de mobiliario",
+      "alternativeCategories": [],
+      "description": "Furniture rental"
+    },
+    {
+      "id": 54,
+      "query": "salón para evento",
+      "expectedCategory": "Salones de eventos",
+      "alternativeCategories": [],
+      "description": "Event venue"
+    },
+    {
+      "id": 55,
+      "query": "hacer mi declaración de impuestos",
+      "expectedCategory": "Contadores",
+      "alternativeCategories": [],
+      "description": "Tax filing"
+    },
+    {
+      "id": 56,
+      "query": "asesoría contable",
+      "expectedCategory": "Contadores",
+      "alternativeCategories": [],
+      "description": "Accounting advice"
+    },
+    {
+      "id": 57,
+      "query": "diseñar planos de casa",
+      "expectedCategory": "Arquitectos",
+      "alternativeCategories": [],
+      "description": "Architecture plans"
+    },
+    {
+      "id": 58,
+      "query": "topógrafo para terreno",
+      "expectedCategory": "Topografía",
+      "alternativeCategories": [],
+      "description": "Land surveying"
+    },
+    {
+      "id": 59,
+      "query": "instalar paneles solares",
+      "expectedCategory": "Energía solar",
+      "alternativeCategories": [],
+      "description": "Solar panel installation"
+    },
+    {
+      "id": 60,
+      "query": "asesoría financiera",
+      "expectedCategory": "Consultoría financiera",
+      "alternativeCategories": [],
+      "description": "Financial consulting"
+    },
+    {
+      "id": 61,
+      "query": "invertir en bolsa",
+      "expectedCategory": "Asesoría en inversiones",
+      "alternativeCategories": [],
+      "description": "Investment advisory"
+    },
+    {
+      "id": 62,
+      "query": "comprar una casa",
+      "expectedCategory": "Inmobiliarias",
+      "alternativeCategories": [],
+      "description": "Real estate"
+    },
+    {
+      "id": 63,
+      "query": "rentar departamento",
+      "expectedCategory": "Inmobiliarias",
+      "alternativeCategories": [],
+      "description": "Apartment rental"
+    },
+    {
+      "id": 64,
+      "query": "notario público",
+      "expectedCategory": "Notarios",
+      "alternativeCategories": [],
+      "description": "Notary service"
+    },
+    {
+      "id": 65,
+      "query": "traducir documento",
+      "expectedCategory": "Traductores",
+      "alternativeCategories": [],
+      "description": "Translation service"
+    },
+    {
+      "id": 66,
+      "query": "imprimir tarjetas de presentación",
+      "expectedCategory": "Imprentas",
+      "alternativeCategories": [],
+      "description": "Printing service"
+    },
+    {
+      "id": 67,
+      "query": "publicidad en redes sociales",
+      "expectedCategory": "Marketing digital",
+      "alternativeCategories": [],
+      "description": "Social media advertising"
+    },
+    {
+      "id": 68,
+      "query": "mantenimiento de piscina",
+      "expectedCategory": "Alberqueros",
+      "alternativeCategories": [],
+      "description": "Pool maintenance"
+    },
+    {
+      "id": 69,
+      "query": "instalar vidrios",
+      "expectedCategory": "Vidrieros",
+      "alternativeCategories": [],
+      "description": "Glass installation"
+    },
+    {
+      "id": 70,
+      "query": "herrería para rejas",
+      "expectedCategory": "Herrería",
+      "alternativeCategories": [],
+      "description": "Metalwork"
+    },
+    {
+      "id": 71,
+      "query": "soldar estructura metálica",
+      "expectedCategory": "Soldadura",
+      "alternativeCategories": [],
+      "description": "Welding"
+    },
+    {
+      "id": 72,
+      "query": "tapizar sillón",
+      "expectedCategory": "Tapicería",
+      "alternativeCategories": [],
+      "description": "Upholstery"
+    },
+    {
+      "id": 73,
+      "query": "instalar cortinas",
+      "expectedCategory": "Cortinas y persianas",
+      "alternativeCategories": [],
+      "description": "Curtain installation"
+    },
+    {
+      "id": 74,
+      "query": "reparar techo",
+      "expectedCategory": "Impermeabilización",
+      "alternativeCategories": [],
+      "description": "Roof repair"
+    },
+    {
+      "id": 75,
+      "query": "impermeabilizar azotea",
+      "expectedCategory": "Impermeabilización",
+      "alternativeCategories": [],
+      "description": "Waterproofing"
+    },
+    {
+      "id": 76,
+      "query": "instalar piso laminado",
+      "expectedCategory": "Pisos",
+      "alternativeCategories": [],
+      "description": "Floor installation"
+    },
+    {
+      "id": 77,
+      "query": "poner azulejos",
+      "expectedCategory": "Azulejos",
+      "alternativeCategories": [],
+      "description": "Tile installation"
+    },
+    {
+      "id": 78,
+      "query": "sistema de seguridad",
+      "expectedCategory": "Seguridad y vigilancia",
+      "alternativeCategories": [],
+      "description": "Security system"
+    },
+    {
+      "id": 79,
+      "query": "cámaras de vigilancia",
+      "expectedCategory": "Seguridad y vigilancia",
+      "alternativeCategories": [],
+      "description": "Security cameras"
+    },
+    {
+      "id": 80,
+      "query": "alarma para casa",
+      "expectedCategory": "Seguridad y vigilancia",
+      "alternativeCategories": [],
+      "description": "Home alarm system"
+    }
+  ]
+}

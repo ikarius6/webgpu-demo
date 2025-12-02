@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AlertCircle, Zap, Search, Loader2, Github } from 'lucide-react';
 import categoriesData from './categories.json';
+import modelsConfig from './modelsConfig.json';
 
 /**
  * Clasificador de Servicios con IA - Multi-Matcher Strategy
@@ -26,13 +27,16 @@ const ServiceClassifier = () => {
   const [input, setInput] = useState('');
   const [result, setResult] = useState<Array<{ category: string; score: number; embeddingScore: number; fuzzyScore: number; keywordScore: number }> | null>(null);
   const [loading, setLoading] = useState(false);
-  const [modelLoading, setModelLoading] = useState(true);
+  const [modelLoading, setModelLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [webGPUSupported, setWebGPUSupported] = useState<boolean | null>(null);
   const [extractor, setExtractor] = useState<any>(null);
   const [categoryEmbeddings, setCategoryEmbeddings] = useState<any>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [selectedModelId, setSelectedModelId] = useState('');
   const isLoadingRef = useRef(false);
+  const availableModels = modelsConfig.models;
+  const selectedModel = availableModels.find(m => m.id === selectedModelId);
 
   // Crear etiquetas enriquecidas con sinónimos para mejor contexto
   const categoriesWithSynonyms = categoriesData.items.map(item => ({
@@ -56,8 +60,14 @@ const ServiceClassifier = () => {
 
   useEffect(() => {
     checkWebGPU();
-    loadModel();
   }, []);
+
+  useEffect(() => {
+    if (selectedModelId) {
+      loadModel();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedModelId]);
 
   const checkWebGPU = async () => {
     if ('gpu' in navigator) {
@@ -73,6 +83,12 @@ const ServiceClassifier = () => {
   };
 
   const loadModel = async () => {
+    if (!selectedModel) {
+      console.log('[SKIP] No model selected');
+      setModelLoading(false);
+      return;
+    }
+
     // Prevenir doble inicialización (React StrictMode)
     if (isLoadingRef.current) {
       console.log('[SKIP] Ya se está cargando el modelo');
@@ -84,6 +100,11 @@ const ServiceClassifier = () => {
       console.log('[1] Iniciando carga del modelo...');
       setModelLoading(true);
       setError("");
+      
+      // Limpiar estado previo
+      setExtractor(null);
+      setCategoryEmbeddings(null);
+      setResult(null);
 
       // Esperar a que transformers.js esté disponible en window
       console.log('[2] Esperando transformers.js desde CDN...');
@@ -104,18 +125,17 @@ const ServiceClassifier = () => {
       console.log('[4] Configurando entorno...');
       env.allowRemoteModels = true;
       env.allowLocalModels = false;
-      // No sobrescribir remoteHost y remotePathTemplate - usar los defaults del paquete
-      console.log('[5] Configuración aplicada (usando defaults):', {
+      console.log('[5] Configuración aplicada (usar defaults):', {
         allowRemoteModels: env.allowRemoteModels,
         remoteHost: env.remoteHost,
         remotePathTemplate: env.remotePathTemplate
       });
       
-      // Cargar el modelo de embeddings multilingüe
-      console.log('[6] Cargando pipeline de feature-extraction...');
+      // Cargar el modelo de embeddings seleccionado
+      console.log(`[6] Cargando modelo: ${selectedModel.name} (${selectedModel.huggingFaceId})...`);
       const pipe = await pipeline(
         'feature-extraction',
-        'Xenova/multilingual-e5-small',
+        selectedModel.huggingFaceId,
         {
           progress_callback: (progress: any) => {
             console.log('[PROGRESS]', progress);
@@ -142,9 +162,9 @@ const ServiceClassifier = () => {
       }
 
       // Generar embeddings para todas las categorías
-      // Usar prefijo "passage:" para documentos (best practice E5)
       console.log('[8] Generando embeddings para categorías...');
-      const embeddingsPromises = categoryLabels.map(label => pipe(`passage: ${label}`));
+      const prefix = selectedModel.requiresPrefixes ? 'passage: ' : '';
+      const embeddingsPromises = categoryLabels.map(label => pipe(`${prefix}${label}`));
       const embeddings = await Promise.all(embeddingsPromises);
       console.log('[9] Embeddings generados:', embeddings.length);
 
@@ -291,8 +311,9 @@ const ServiceClassifier = () => {
     try {
       console.log('[CLASSIFY] Generando embedding del input...');
       
-      // Prefijo "query:" es best practice para modelos E5
-      const prefixedInput = `query: ${input}`;
+      // Usar prefijo según el modelo seleccionado
+      const queryPrefix = selectedModel?.requiresPrefixes ? 'query: ' : '';
+      const prefixedInput = `${queryPrefix}${input}`;
       
       // Generar embedding del input
       const inputEmbedding = await extractor(prefixedInput);
@@ -438,17 +459,17 @@ const ServiceClassifier = () => {
             <div className="flex items-center gap-2">
               <Zap className={`w-5 h-5 ${webGPUSupported ? 'text-green-500' : 'text-orange-500'}`} />
               <span className="text-sm font-medium">
-                WebGPU: {webGPUSupported === null ? 'Verificando...' : webGPUSupported ? 'Soportado ✓' : 'No disponible (usando CPU)'}
+                WebGPU: {webGPUSupported === null ? 'Verificando...' : webGPUSupported ? 'Soportado ' : 'No disponible (usando CPU)'}
               </span>
             </div>
           </div>
 
           {/* Model Loading */}
-          {modelLoading && (
+          {modelLoading && selectedModel && (
             <div className="mb-6 p-6 bg-blue-50 rounded-lg text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-blue-600" />
-              <p className="text-blue-800 font-medium">Cargando modelo y generando embeddings...</p>
-              <p className="text-sm text-blue-600 mt-1">Primera vez: ~118MB. Luego se guarda en caché.</p>
+              <p className="text-blue-800 font-medium">Cargando {selectedModel.name}...</p>
+              <p className="text-sm text-blue-600 mt-1">Primera vez: ~{selectedModel.size}. Luego se guarda en caché.</p>
             </div>
           )}
 
@@ -459,6 +480,34 @@ const ServiceClassifier = () => {
               <p className="text-red-800 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Model Selector */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Modelo de embeddings:
+            </label>
+            <select
+              value={selectedModelId}
+              onChange={(e) => {
+                setSelectedModelId(e.target.value);
+                isLoadingRef.current = false; // Reset para permitir nueva carga
+              }}
+              disabled={modelLoading || loading}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">📥 Selecciona un modelo para comenzar...</option>
+              {availableModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name} ({model.size}) {model.recommended ? '⭐ Recomendado' : ''}
+                </option>
+              ))}
+            </select>
+            {selectedModel && (
+              <p className="text-xs text-gray-600 mt-2">
+                {selectedModel?.description} - Dimensiones: {selectedModel?.dimensions}
+              </p>
+            )}
+          </div>
 
           {/* Categories */}
           <div className="mb-6">
