@@ -2,6 +2,10 @@
 
 Una aplicación web moderna que utiliza inteligencia artificial para clasificar servicios basándose en descripciones en lenguaje natural. Construida con React, TypeScript, y Transformers.js con soporte para aceleración por WebGPU.
 
+## 🎬 Demo
+
+[Demo](https://hackers.army/webgpu/)
+
 ## 🚀 Características
 
 - **IA Multilingüe**: Utiliza el modelo `multilingual-e5-small` para embeddings semánticos
