@@ -9,10 +9,9 @@ import categoriesData from './categories.json';
  * 
  * Mejoras implementadas:
  * - Modelo: multilingual-e5-small con prefijos "query:" y "passage:" (best practice)
- * - Usa TODOS los sinónimos (no solo 5) para mejor contexto semántico
+ * - Usa TODOS los sinónimos para mejor contexto semántico
  * - Búsqueda fuzzy en sinónimos para coincidencias directas (prioriza matches exactos)
  * - Combina scores: 80% embeddings + 20% fuzzy (60% fuzzy si match > 0.7)
- * - Resultados mucho más precisos que el enfoque anterior
  */
 const ServiceClassifier = () => {
   const [input, setInput] = useState('');
