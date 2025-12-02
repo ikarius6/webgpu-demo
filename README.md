@@ -8,12 +8,12 @@ Una aplicación web moderna que utiliza inteligencia artificial para clasificar 
 
 ## 🚀 Características
 
-- **IA Multilingüe**: Utiliza el modelo `multilingual-e5-small` para embeddings semánticos
+- **10 Modelos de IA**: Soporte para 5 familias de embeddings (E5, MiniLM, Paraphrase, BGE, MPNet/GTE) desde 23MB a 438MB
 - **Aceleración por WebGPU**: Aprovecha la GPU del navegador cuando está disponible
-- **Búsqueda Híbrida**: Combina búsqueda semántica (80%) con coincidencias fuzzy (20%) para mayor precisión
-- **Interfaz Moderna**: UI responsive con TailwindCSS y componentes de React
+- **Multi-Matcher Strategy**: Combina 3 algoritmos independientes (keyword 35%, fuzzy 30%, embedding 35%) con pesos adaptativos
+- **Interfaz Moderna**: UI responsive con TailwindCSS, selector de modelos y score breakdown detallado
 - **Sin Backend**: Funciona completamente en el navegador
-- **Caché Inteligente**: El modelo se descarga una vez (~118MB) y se guarda en caché del navegador
+- **Caché Inteligente**: Los modelos se descargan una vez y se guardan en caché del navegador
 
 ## 📋 Requisitos Previos
 
@@ -62,41 +62,81 @@ npm run preview
 ```
 webgpu/
 ├── src/
-│   ├── ServiceClassifier.tsx  # Componente principal con la lógica de IA
-│   ├── categories.json        # Categorías de servicios y sinónimos
-│   ├── main.tsx              # Punto de entrada de React
-│   └── index.css             # Estilos globales con Tailwind
-├── index.html                # HTML base con carga de Transformers.js
-├── package.json              # Dependencias y configuración
-├── tsconfig.json            # Configuración de TypeScript
-├── tailwind.config.js       # Configuración de TailwindCSS
-└── vite.config.ts           # Configuración de Vite
+│   ├── ServiceClassifier.tsx  # Componente principal con Multi-Matcher Strategy
+│   ├── ModelComparison.tsx    # Comparador de modelos
+│   ├── ModelTester.tsx        # Testing de modelos
+│   ├── categories.json        # 300+ categorías con sinónimos
+│   ├── modelsConfig.json      # Configuración de modelos disponibles
+│   ├── testCases.json         # Casos de prueba para validación
+│   ├── main.tsx               # Punto de entrada de React
+│   └── index.css              # Estilos globales con Tailwind
+├── index.html                 # HTML base con carga de Transformers.js
+├── package.json               # Dependencias y configuración
+├── tsconfig.json              # Configuración de TypeScript
+├── tailwind.config.js         # Configuración de TailwindCSS
+└── vite.config.ts             # Configuración de Vite
 ```
 
 ## 🧠 Cómo Funciona
 
-### 1. Modelo de IA
+### 1. Modelos de IA
 
-El proyecto utiliza **Transformers.js** para ejecutar modelos de machine learning directamente en el navegador:
+El proyecto utiliza **Transformers.js** para ejecutar modelos de machine learning directamente en el navegador. Incluye **10 modelos diferentes** organizados en 5 familias.
 
-- **Modelo**: `Xenova/multilingual-e5-small`
-- **Tipo**: Embeddings semánticos multilingües
-- **Técnica**: Feature extraction con similitud coseno
-- **Optimización**: Prefijos "query:" y "passage:" para mejor rendimiento (best practice E5)
+**Modelos Disponibles:**
+
+#### E5 Family (Multilingües con prefijos)
+- **Multilingual E5 Small** - 118MB, 384 dims - Rendimiento equilibrado
+- **Multilingual E5 Base** - 278MB, 768 dims - Mayor precisión, más pesado
+
+#### MiniLM Family (Ligeros y rápidos)
+- **All-MiniLM L6 v2** ⭐ (Recomendado) - 23MB, 384 dims - Más ligero, enfocado en inglés
+- **All-MiniLM L12 v2** - 66MB, 384 dims - Mayor precisión que L6
+
+#### Paraphrase Family (Optimizados para paráfrasis)
+- **Paraphrase MiniLM L6 v2** - 23MB, 384 dims - Ligero para paráfrasis
+- **Paraphrase Multilingual MiniLM** - 118MB, 384 dims - Multilingüe alternativo
+
+#### BGE Family (Alto rendimiento para inglés)
+- **BGE Small EN v1.5** - 133MB, 384 dims - Compacto
+- **BGE Base EN v1.5** - 438MB, 768 dims - Alto rendimiento
+
+#### MPNet & GTE
+- **All-MPNet Base v2** - 438MB, 768 dims - Alta calidad para inglés
+- **GTE Small** - 133MB, 384 dims - Eficiente y rápido
+
+**Notas Técnicas:**
+- Los modelos E5 requieren prefijos "query:" y "passage:" para mejor rendimiento
+- Feature extraction con similitud coseno
+- Embeddings enriquecidos con sinónimos completos
+- Configuración editable en `modelsConfig.json`
 
 ### 2. Algoritmo de Clasificación
 
-La clasificación combina dos enfoques:
+El sistema implementa una **Multi-Matcher Strategy** que combina 3 matchers independientes con weighted voting:
 
-1. **Embeddings Semánticos (80%)**
-   - Convierte el texto en vectores numéricos
-   - Compara la similitud coseno entre el query y las categorías
-   - Captura el significado semántico profundo
+1. **Keyword Matcher (35%)**
+   - Coincidencias exactas y substring matching
+   - Detecta términos específicos dentro del query
+   - Ideal para búsquedas directas de servicios conocidos
 
-2. **Búsqueda Fuzzy (20-60%)**
-   - Busca coincidencias directas en sinónimos
-   - Si encuentra coincidencias altas (>0.7), aumenta su peso al 60%
-   - Ideal para términos técnicos específicos
+2. **Fuzzy Matcher (30%)**
+   - Utiliza Levenshtein distance para detectar variaciones ortográficas
+   - Tolera errores de tipeo y variaciones en escritura
+   - Umbral de similitud del 80% para activarse
+
+3. **Embedding Matcher (35%)**
+   - Similitud semántica usando embeddings multilingües
+   - Captura el significado contextual profundo
+   - Compara vectores mediante similitud coseno
+
+**Características Avanzadas:**
+- **Pesos Adaptativos**: Los pesos se ajustan dinámicamente según la calidad de los matches
+  - Si keyword match > 80%: aumenta a 50% keyword, 20% fuzzy, 30% embedding
+  - Si fuzzy match > 85%: aumenta a 25% keyword, 45% fuzzy, 30% embedding
+- **Position-based Weighting**: Bonus del 30% para resultados mejor posicionados
+- **Confidence Threshold**: Filtro mínimo del 15% para eliminar resultados poco relevantes
+- **Score Breakdown**: Muestra la contribución de cada matcher en los resultados
 
 ### 3. Categorías
 
@@ -138,22 +178,52 @@ Prueba con estas consultas:
 ### IA/ML
 - **Transformers.js 2.17.2** - Modelos de ML en el navegador
 - **WebGPU** - Aceleración por GPU
-- **multilingual-e5-small** - Modelo de embeddings
+- **Multi-Matcher Strategy** - Sistema de 3 algoritmos combinados
+- **Embeddings Multilingües** - Soporte para múltiples modelos (E5, MiniLM)
+- **Levenshtein Distance** - Algoritmo de fuzzy matching
 
 ## ⚙️ Configuración Avanzada
 
 ### Ajustar Pesos del Algoritmo
 
-En `ServiceClassifier.tsx`, líneas 228-235:
+En `ServiceClassifier.tsx`, líneas 347-380:
 
 ```typescript
-// Combinar scores
-let finalScore;
-if (fuzzyScore >= 0.7) {
-  finalScore = 0.4 * embeddingSimilarity + 0.6 * fuzzyScore;
-} else {
-  finalScore = 0.8 * embeddingSimilarity + 0.2 * fuzzyScore;
-}
+// Weighted voting con pesos configurables
+const weights = {
+  keyword: 0.35,   // Coincidencias exactas son muy importantes
+  fuzzy: 0.30,     // Fuzzy matching para variaciones
+  embedding: 0.35  // Semántica para entender contexto
+};
+
+// Pesos adaptativos según calidad del match
+similarities.forEach((item: any) => {
+  let finalWeights = { ...weights };
+  
+  // Si hay keyword match fuerte (>0.8), aumentar su peso
+  if (item.keywordScore >= 0.8) {
+    finalWeights = {
+      keyword: 0.50,
+      fuzzy: 0.20,
+      embedding: 0.30
+    };
+  }
+  // Si hay fuzzy match fuerte (>0.85), ajustar pesos
+  else if (item.fuzzyScore >= 0.85) {
+    finalWeights = {
+      keyword: 0.25,
+      fuzzy: 0.45,
+      embedding: 0.30
+    };
+  }
+  
+  // Calcular score final combinado
+  item.score = (
+    item.keywordScore * finalWeights.keyword +
+    item.fuzzyScore * finalWeights.fuzzy +
+    item.embeddingScore * finalWeights.embedding
+  );
+});
 ```
 
 ### Agregar Nuevas Categorías
@@ -162,11 +232,53 @@ Editar `src/categories.json`:
 
 ```json
 {
-  "id": 999,
-  "name": "Nueva Categoría",
-  "synonyms": ["sinónimo1", "sinónimo2", "término relacionado"]
+  "items": [
+    {
+      "id": 999,
+      "name": "Nueva Categoría",
+      "synonyms": ["sinónimo1", "sinónimo2", "término relacionado", "variación"]
+    }
+  ]
 }
 ```
+
+**Tips:**
+- Incluir mínimo 3-5 sinónimos por categoría
+- Agregar variaciones comunes y errores de escritura
+- Los sinónimos mejoran keyword y fuzzy matching
+
+### Agregar Nuevos Modelos
+
+Editar `src/modelsConfig.json`:
+
+```json
+{
+  "models": [
+    {
+      "id": "nuevo-modelo",
+      "name": "Nombre del Modelo",
+      "huggingFaceId": "Xenova/nombre-modelo",
+      "size": "200MB",
+      "dimensions": 384,
+      "requiresPrefixes": false,
+      "description": "Descripción breve del modelo",
+      "recommended": false,
+      "category": "Familia del Modelo"
+    }
+  ]
+}
+```
+
+**Campos:**
+- `id`: Identificador único (kebab-case)
+- `name`: Nombre para mostrar en la UI
+- `huggingFaceId`: ID en HuggingFace (formato: `Xenova/modelo`)
+- `size`: Tamaño aproximado del modelo
+- `dimensions`: Dimensiones del vector embedding (384 o 768 típicamente)
+- `requiresPrefixes`: `true` solo para modelos E5 (requieren "query:"/"passage:")
+- `description`: Breve descripción para el usuario
+- `recommended`: `true` para marcar con ⭐ en el selector
+- `category`: Familia del modelo (E5, MiniLM, BGE, etc.)
 
 ## 🌐 Compatibilidad de Navegadores
 
@@ -182,10 +294,25 @@ Editar `src/categories.json`:
 
 ## 📊 Rendimiento
 
-- **Primera carga**: ~5-10 segundos (descarga del modelo 118MB)
-- **Cargas posteriores**: ~2-3 segundos (modelo en caché)
-- **Clasificación con WebGPU**: <200ms
-- **Clasificación con CPU**: ~500ms-1s
+**Carga del Modelo** (varía según tamaño y familia):
+
+| Modelo | Tamaño | Primera Carga | Con Caché |
+|--------|--------|---------------|-----------|
+| All-MiniLM L6 v2 ⭐ | 23MB | ~2-4s | ~1s |
+| Paraphrase MiniLM L6 | 23MB | ~2-4s | ~1s |
+| All-MiniLM L12 v2 | 66MB | ~4-7s | ~1-2s |
+| Multilingual E5 Small | 118MB | ~6-10s | ~2-3s |
+| Paraphrase Multilingual | 118MB | ~6-10s | ~2-3s |
+| BGE/GTE Small | 133MB | ~7-11s | ~2-3s |
+| Multilingual E5 Base | 278MB | ~12-18s | ~3-5s |
+| All-MPNet/BGE Base | 438MB | ~20-30s | ~5-8s |
+
+**Clasificación:**
+- **Con WebGPU**: <200ms
+- **Con CPU**: ~500ms-1s
+- **Score breakdown**: incluido en UI sin impacto perceptible
+
+**Recomendación:** Para balance entre velocidad y calidad, usa **All-MiniLM L6 v2** (23MB, recomendado).
 
 ## 🔧 Solución de Problemas
 
@@ -206,8 +333,13 @@ Editar `src/categories.json`:
 ### Resultados imprecisos
 
 1. Agregar más sinónimos relevantes en `categories.json`
-2. Ajustar los pesos del algoritmo híbrido
-3. Verificar que el query esté bien escrito en español
+2. Ajustar los pesos del algoritmo en `ServiceClassifier.tsx` (líneas 347-380)
+3. Probar con diferentes modelos según necesidad:
+   - **All-MiniLM L6 v2** ⭐: Recomendado para balance velocidad/calidad
+   - **Multilingual E5**: Mejor para español y multilingüe
+   - **BGE/MPNet Base**: Mayor precisión (más pesados)
+4. Verificar que el query esté bien escrito
+5. Revisar el score breakdown para entender qué matcher está fallando
 
 ## 🚀 Deployment
 
@@ -240,32 +372,47 @@ ServiceClassifier
 ├── Estado (hooks)
 │   ├── input / result / loading
 │   ├── modelLoading / error
+│   ├── selectedModelId / selectedModel
 │   └── extractor / categoryEmbeddings
 ├── Efectos
 │   ├── checkWebGPU()
-│   └── loadModel()
-└── Funciones
-    ├── cosineSimilarity()
-    ├── fuzzyMatch()
-    └── classify()
+│   └── loadModel() (se ejecuta al seleccionar modelo)
+└── Funciones (Multi-Matcher)
+    ├── cosineSimilarity() - para embeddings
+    ├── keywordMatch() - coincidencias exactas/substring
+    ├── levenshteinDistance() - distancia de edición
+    ├── fuzzyMatch() - matching tolerante a errores
+    └── classify() - orquesta los 3 matchers
 ```
 
 ### Flujo de Carga del Modelo
 
 1. Verificar WebGPU disponible
-2. Cargar Transformers.js desde CDN
-3. Crear pipeline de feature-extraction
-4. Generar embeddings para todas las categorías (con prefijo "passage:")
-5. Guardar en estado para reutilizar
+2. Selección de modelo desde dropdown (configurado en `modelsConfig.json`)
+3. Cargar Transformers.js desde CDN
+4. Crear pipeline de feature-extraction con el modelo seleccionado
+5. Generar embeddings para todas las categorías:
+   - Si `requiresPrefixes: true` (E5): agregar prefijo "passage:"
+   - Si `false`: usar texto directo
+6. Guardar pipeline y embeddings en estado para reutilizar
 
 ### Flujo de Clasificación
 
 1. Usuario ingresa query
-2. Generar embedding del query (con prefijo "query:")
-3. Calcular similitud coseno con cada categoría
-4. Calcular fuzzy match con sinónimos
-5. Combinar scores con pesos adaptativos
-6. Ordenar y mostrar top 10 resultados
+2. Generar embedding del query:
+   - Si modelo tiene `requiresPrefixes: true`: agregar prefijo "query:"
+   - Si `false`: usar query directo
+3. Para cada categoría calcular:
+   - **Keyword Score**: coincidencias exactas y substring matching
+   - **Fuzzy Score**: Levenshtein distance con sinónimos
+   - **Embedding Score**: similitud coseno entre vectores
+4. Aplicar weighted voting con pesos adaptativos:
+   - Pesos base: 35% keyword, 30% fuzzy, 35% embedding
+   - Si keyword match > 80%: ajustar a 50/20/30
+   - Si fuzzy match > 85%: ajustar a 25/45/30
+5. Aplicar position-based weighting (bonus del 30%)
+6. Filtrar por confianza mínima (15%)
+7. Ordenar y mostrar top 10 resultados con breakdown de scores
 
 ## 🤝 Contribuciones
 
