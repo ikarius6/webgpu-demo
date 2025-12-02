@@ -328,7 +328,7 @@ const ModelComparison = () => {
 
   const runComparison = async () => {
     if (selectedModels.length === 0) {
-      setError('Please select at least one model to test');
+      setError('Por favor selecciona al menos un modelo para probar');
       return;
     }
 
@@ -353,7 +353,7 @@ const ModelComparison = () => {
     } catch (err) {
       console.error('[COMPARISON ERROR]', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Error during comparison: ${errorMessage}`);
+      setError(`Error durante la comparación: ${errorMessage}`);
     } finally {
       setTesting(false);
       setCurrentModel('');
@@ -388,10 +388,10 @@ const ModelComparison = () => {
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Model Comparison
+            Comparación de Modelos
           </h1>
           <p className="text-gray-600 mb-6">
-            Test multiple embedding models and compare their performance
+            Prueba múltiples modelos de embeddings y compara su rendimiento
           </p>
 
           {/* Error Display */}
@@ -404,7 +404,7 @@ const ModelComparison = () => {
 
           {/* Model Selection */}
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Select Models to Test</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Seleccionar Modelos a Probar</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {availableModels.map(model => (
                 <div
@@ -429,7 +429,7 @@ const ModelComparison = () => {
                     </div>
                     {model.recommended && (
                       <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">
-                        Recommended
+                        Recomendado
                       </span>
                     )}
                   </div>
@@ -454,12 +454,12 @@ const ModelComparison = () => {
               {testing ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Testing {currentModel}... {progress.toFixed(0)}%
+                  Probando {currentModel}... {progress.toFixed(0)}%
                 </>
               ) : (
                 <>
                   <Play className="w-5 h-5" />
-                  Run Comparison
+                  Ejecutar Comparación
                 </>
               )}
             </button>
@@ -470,7 +470,7 @@ const ModelComparison = () => {
                 className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
               >
                 <Download className="w-5 h-5" />
-                Download Results
+                Descargar Resultados
               </button>
             )}
           </div>
@@ -492,7 +492,7 @@ const ModelComparison = () => {
             <div className="space-y-6">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className="w-6 h-6 text-indigo-600" />
-                <h2 className="text-2xl font-bold text-gray-800">Results Comparison</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Comparación de Resultados</h2>
               </div>
 
               {/* Summary Table */}
@@ -500,12 +500,12 @@ const ModelComparison = () => {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Model</th>
+                      <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Modelo</th>
                       <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold">Top-1</th>
                       <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold">Top-3</th>
                       <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold">Top-5</th>
-                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold">Avg Time</th>
-                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold">Total Time</th>
+                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold">Tiempo Prom.</th>
+                      <th className="border border-gray-300 px-4 py-3 text-center text-sm font-semibold">Tiempo Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -541,7 +541,7 @@ const ModelComparison = () => {
                     <div className="space-y-2">
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">Top-1 Accuracy</span>
+                          <span className="text-gray-600">Precisión Top-1</span>
                           <span className="font-bold text-green-700">{result.top1Accuracy.toFixed(1)}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -553,7 +553,7 @@ const ModelComparison = () => {
                       </div>
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">Top-3 Accuracy</span>
+                          <span className="text-gray-600">Precisión Top-3</span>
                           <span className="font-bold text-blue-700">{result.top3Accuracy.toFixed(1)}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -565,7 +565,7 @@ const ModelComparison = () => {
                       </div>
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">Top-5 Accuracy</span>
+                          <span className="text-gray-600">Precisión Top-5</span>
                           <span className="font-bold text-purple-700">{result.top5Accuracy.toFixed(1)}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -583,7 +583,7 @@ const ModelComparison = () => {
               {/* Winner Declaration */}
               {results.length > 1 && (
                 <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-400 rounded-lg p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">🏆 Best Model</h3>
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">🏆 Mejor Modelo</h3>
                   {(() => {
                     const bestByTop1 = [...results].sort((a, b) => b.top1Accuracy - a.top1Accuracy)[0];
                     const fastestModel = [...results].sort((a, b) => a.averageInferenceTime - b.averageInferenceTime)[0];
@@ -591,12 +591,12 @@ const ModelComparison = () => {
                     return (
                       <div className="space-y-3">
                         <p className="text-gray-700">
-                          <span className="font-bold text-green-700">{bestByTop1.modelName}</span> has the highest Top-1 accuracy at{' '}
+                          <span className="font-bold text-green-700">{bestByTop1.modelName}</span> tiene la mayor precisión Top-1 con{' '}
                           <span className="font-bold">{bestByTop1.top1Accuracy.toFixed(1)}%</span>
                         </p>
                         <p className="text-gray-700">
-                          <span className="font-bold text-blue-700">{fastestModel.modelName}</span> is the fastest with{' '}
-                          <span className="font-bold">{fastestModel.averageInferenceTime.toFixed(1)}ms</span> average inference time
+                          <span className="font-bold text-blue-700">{fastestModel.modelName}</span> es el más rápido con{' '}
+                          <span className="font-bold">{fastestModel.averageInferenceTime.toFixed(1)}ms</span> de tiempo promedio de inferencia
                         </p>
                       </div>
                     );

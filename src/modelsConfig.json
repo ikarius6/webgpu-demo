@@ -7,8 +7,8 @@
       "size": "118MB",
       "dimensions": 384,
       "requiresPrefixes": true,
-      "description": "Current model - balanced performance",
-      "recommended": true,
+      "description": "Modelo actual - rendimiento equilibrado",
+      "recommended": false,
       "category": "E5 Family"
     },
     {
@@ -18,7 +18,18 @@
       "size": "23MB",
       "dimensions": 384,
       "requiresPrefixes": false,
-      "description": "Lightest weight option, English-focused",
+      "description": "Opción más ligera, enfocado en inglés",
+      "recommended": true,
+      "category": "MiniLM Family"
+    },
+    {
+      "id": "all-minilm-l12-v2",
+      "name": "All-MiniLM L12 v2",
+      "huggingFaceId": "Xenova/all-MiniLM-L12-v2",
+      "size": "66MB",
+      "dimensions": 384,
+      "requiresPrefixes": false,
+      "description": "Mayor precisión que L6, aún ligero",
       "recommended": false,
       "category": "MiniLM Family"
     },
@@ -29,9 +40,20 @@
       "size": "118MB",
       "dimensions": 384,
       "requiresPrefixes": false,
-      "description": "Alternative multilingual option",
+      "description": "Opción multilingüe alternativa",
       "recommended": false,
       "category": "Paraphrase Family"
+    },
+    {
+      "id": "all-mpnet-base-v2",
+      "name": "All-MPNet Base v2",
+      "huggingFaceId": "Xenova/all-mpnet-base-v2",
+      "size": "438MB",
+      "dimensions": 768,
+      "requiresPrefixes": false,
+      "description": "Alta calidad, excelente para inglés",
+      "recommended": false,
+      "category": "MPNet Family"
     },
     {
       "id": "multilingual-e5-base",
@@ -40,9 +62,53 @@
       "size": "278MB",
       "dimensions": 768,
       "requiresPrefixes": true,
-      "description": "Better accuracy, larger size",
+      "description": "Mayor precisión, tamaño más grande",
       "recommended": false,
       "category": "E5 Family"
+    },
+    {
+      "id": "bge-small-en-v1.5",
+      "name": "BGE Small EN v1.5",
+      "huggingFaceId": "Xenova/bge-small-en-v1.5",
+      "size": "133MB",
+      "dimensions": 384,
+      "requiresPrefixes": false,
+      "description": "Modelo BGE compacto para inglés",
+      "recommended": false,
+      "category": "BGE Family"
+    },
+    {
+      "id": "bge-base-en-v1.5",
+      "name": "BGE Base EN v1.5",
+      "huggingFaceId": "Xenova/bge-base-en-v1.5",
+      "size": "438MB",
+      "dimensions": 768,
+      "requiresPrefixes": false,
+      "description": "Modelo BGE de alto rendimiento",
+      "recommended": false,
+      "category": "BGE Family"
+    },
+    {
+      "id": "gte-small",
+      "name": "GTE Small",
+      "huggingFaceId": "Xenova/gte-small",
+      "size": "133MB",
+      "dimensions": 384,
+      "requiresPrefixes": false,
+      "description": "Modelo GTE eficiente y rápido",
+      "recommended": false,
+      "category": "GTE Family"
+    },
+    {
+      "id": "paraphrase-minilm-l6-v2",
+      "name": "Paraphrase MiniLM L6 v2",
+      "huggingFaceId": "Xenova/paraphrase-MiniLM-L6-v2",
+      "size": "23MB",
+      "dimensions": 384,
+      "requiresPrefixes": false,
+      "description": "Ligero y optimizado para paráfrasis",
+      "recommended": false,
+      "category": "Paraphrase Family"
     }
   ]
 }
