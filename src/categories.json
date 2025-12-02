@@ -1971,6 +1971,7 @@
       "name": "Impermeabilización",
       "synonyms": [
         "impermeabilizar",
+        "techo",
         "goteras",
         "humedad",
         "filtración",
@@ -2395,6 +2396,7 @@
       "id": 104,
       "name": "Lavado de autos",
       "synonyms": [
+        "lavar",
         "lavado auto",
         "lavado carro",
         "encerado",

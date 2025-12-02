@@ -38,15 +38,15 @@
     {
       "id": 6,
       "query": "instalar aire acondicionado",
-      "expectedCategory": "Refrigeración",
-      "alternativeCategories": ["Instalación de climas", "Aire acondicionado"],
+      "expectedCategory": "Instalación y reparación de aire acondicionado",
+      "alternativeCategories": [],
       "description": "HVAC installation"
     },
     {
       "id": 7,
       "query": "reparar mi refrigerador",
-      "expectedCategory": "Refrigeración",
-      "alternativeCategories": ["Reparación de electrodomésticos"],
+      "expectedCategory": "Reparación de electrodomésticos",
+      "alternativeCategories": [],
       "description": "Appliance repair"
     },
     {
@@ -136,14 +136,14 @@
     {
       "id": 20,
       "query": "limpiar mi casa",
-      "expectedCategory": "Limpieza del hogar",
+      "expectedCategory": "Limpieza residencial",
       "alternativeCategories": [],
       "description": "House cleaning"
     },
     {
       "id": 21,
       "query": "servicio de lavandería",
-      "expectedCategory": "Lavanderías",
+      "expectedCategory": "Lavandería",
       "alternativeCategories": [],
       "description": "Laundry service"
     },
@@ -185,14 +185,14 @@
     {
       "id": 27,
       "query": "fotógrafo para boda",
-      "expectedCategory": "Fotografía",
-      "alternativeCategories": [],
+      "expectedCategory": "Fotografía de eventos",
+      "alternativeCategories": ["Fotografía social"],
       "description": "Wedding photography"
     },
     {
       "id": 28,
       "query": "video para evento",
-      "expectedCategory": "Videografía",
+      "expectedCategory": "Videografía de eventos",
       "alternativeCategories": [],
       "description": "Event videography"
     },
@@ -213,14 +213,14 @@
     {
       "id": 31,
       "query": "mecánico para mi carro",
-      "expectedCategory": "Mecánica automotriz",
+      "expectedCategory": "Taller mecánico",
       "alternativeCategories": [],
       "description": "Auto mechanic"
     },
     {
       "id": 32,
       "query": "cambiar aceite de motor",
-      "expectedCategory": "Mecánica automotriz",
+      "expectedCategory": "Taller mecánico",
       "alternativeCategories": [],
       "description": "Oil change"
     },
@@ -255,14 +255,14 @@
     {
       "id": 37,
       "query": "peluquería para mujer",
-      "expectedCategory": "Salones de belleza",
+      "expectedCategory": "Estética",
       "alternativeCategories": ["Estilistas"],
       "description": "Hair salon"
     },
     {
       "id": 38,
       "query": "hacer ejercicio",
-      "expectedCategory": "Gimnasios",
+      "expectedCategory": "Gimnasio",
       "alternativeCategories": ["Entrenadores personales"],
       "description": "Fitness"
     },
@@ -297,7 +297,7 @@
     {
       "id": 43,
       "query": "estética canina",
-      "expectedCategory": "Estética canina",
+      "expectedCategory": "Veterinarios",
       "alternativeCategories": [],
       "description": "Pet grooming"
     },
@@ -346,8 +346,8 @@
     {
       "id": 50,
       "query": "sonido para evento",
-      "expectedCategory": "Renta de equipo de sonido",
-      "alternativeCategories": [],
+      "expectedCategory": "Sonido",
+      "alternativeCategories": ["Renta de equipo"],
       "description": "Audio equipment rental"
     },
     {
@@ -360,7 +360,7 @@
     {
       "id": 52,
       "query": "mariachi para serenata",
-      "expectedCategory": "Mariachis",
+      "expectedCategory": "Músicos",
       "alternativeCategories": [],
       "description": "Mariachi band"
     },
@@ -374,7 +374,7 @@
     {
       "id": 54,
       "query": "salón para evento",
-      "expectedCategory": "Salones de eventos",
+      "expectedCategory": "Organización de eventos",
       "alternativeCategories": [],
       "description": "Event venue"
     },
@@ -458,8 +458,8 @@
     {
       "id": 66,
       "query": "imprimir tarjetas de presentación",
-      "expectedCategory": "Imprentas",
-      "alternativeCategories": [],
+      "expectedCategory": "Imprenta",
+      "alternativeCategories": ["Impresiones"],
       "description": "Printing service"
     },
     {
@@ -479,7 +479,7 @@
     {
       "id": 69,
       "query": "instalar vidrios",
-      "expectedCategory": "Vidrieros",
+      "expectedCategory": "Vidriería",
       "alternativeCategories": [],
       "description": "Glass installation"
     },
@@ -493,8 +493,8 @@
     {
       "id": 71,
       "query": "soldar estructura metálica",
-      "expectedCategory": "Soldadura",
-      "alternativeCategories": [],
+      "expectedCategory": "Soldadores",
+      "alternativeCategories": ["Soldadura especializada"],
       "description": "Welding"
     },
     {
@@ -515,7 +515,7 @@
       "id": 74,
       "query": "reparar techo",
       "expectedCategory": "Impermeabilización",
-      "alternativeCategories": [],
+      "alternativeCategories": ["Instalación de techos", "Albañilería"],
       "description": "Roof repair"
     },
     {
@@ -528,36 +528,36 @@
     {
       "id": 76,
       "query": "instalar piso laminado",
-      "expectedCategory": "Pisos",
-      "alternativeCategories": [],
+      "expectedCategory": "Instalación de pisos",
+      "alternativeCategories": ["Albañilería"],
       "description": "Floor installation"
     },
     {
       "id": 77,
       "query": "poner azulejos",
-      "expectedCategory": "Azulejos",
-      "alternativeCategories": [],
+      "expectedCategory": "Instalación de azulejos",
+      "alternativeCategories": ["Albañilería"],
       "description": "Tile installation"
     },
     {
       "id": 78,
       "query": "sistema de seguridad",
-      "expectedCategory": "Seguridad y vigilancia",
-      "alternativeCategories": ["Seguridad privada"],
+      "expectedCategory": "Seguridad privada",
+      "alternativeCategories": [],
       "description": "Security system"
     },
     {
       "id": 79,
       "query": "cámaras de vigilancia",
-      "expectedCategory": "Seguridad y vigilancia",
-      "alternativeCategories": ["Seguridad privada"],
+      "expectedCategory": "Seguridad privada",
+      "alternativeCategories": [],
       "description": "Security cameras"
     },
     {
       "id": 80,
       "query": "alarma para casa",
-      "expectedCategory": "Seguridad y vigilancia",
-      "alternativeCategories": ["Seguridad privada"],
+      "expectedCategory": "Seguridad privada",
+      "alternativeCategories": [],
       "description": "Home alarm system"
     }
   ]
