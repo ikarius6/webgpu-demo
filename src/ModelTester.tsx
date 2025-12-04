@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Download, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { pipeline, env } from '@huggingface/transformers';
 import categoriesData from './categories.json';
 import testCasesData from './testCases.json';
 import modelsConfig from './modelsConfig.json';
@@ -43,7 +44,9 @@ const ModelTester = () => {
   const [categoryEmbeddings, setCategoryEmbeddings] = useState<any>(null);
   const [selectedModelId, setSelectedModelId] = useState('');
   const [weights, setWeights] = useState({ keyword: 0.35, fuzzy: 0.30, embedding: 0.35 });
+  const [webGPUSupported, setWebGPUSupported] = useState<boolean | null>(null);
   const isLoadingRef = useRef(false);
+  const pipelineRef = useRef<any>(null);
   const availableModels = modelsConfig.models;
   const selectedModel = availableModels.find(m => m.id === selectedModelId);
 
@@ -58,87 +61,141 @@ const ModelTester = () => {
   const testCases: TestCase[] = testCasesData.testCases;
 
   useEffect(() => {
+    checkWebGPU();
+  }, []);
+
+  useEffect(() => {
     if (selectedModelId) {
       loadModel();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModelId]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pipelineRef.current) {
+        console.log('[TESTER CLEANUP] Liberando recursos del pipeline...');
+        try {
+          if (typeof pipelineRef.current.dispose === 'function') {
+            pipelineRef.current.dispose();
+          }
+        } catch (err) {
+          console.warn('[TESTER CLEANUP] Error al liberar recursos:', err);
+        }
+      }
+    };
+  }, []);
+
+  const checkWebGPU = async () => {
+    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+    
+    if ('gpu' in navigator) {
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        const hasWebGPU = adapter !== null;
+        setWebGPUSupported(hasWebGPU && !isFirefox);
+        
+        if (hasWebGPU && isFirefox) {
+          console.log('[TESTER] Firefox detectado - usando WASM por rendimiento');
+        }
+      } catch (e) {
+        setWebGPUSupported(false);
+      }
+    } else {
+      setWebGPUSupported(false);
+    }
+  };
+
   const loadModel = async () => {
     if (!selectedModel) {
-      console.log('[SKIP] No model selected');
+      console.log('[TESTER] No model selected');
       setModelLoading(false);
       return;
     }
 
     if (isLoadingRef.current) {
-      console.log('[SKIP] Model already loading');
+      console.log('[TESTER] Model already loading');
       return;
     }
 
     try {
       isLoadingRef.current = true;
-      console.log('[TEST] Loading model...');
+      const startTime = performance.now();
+      console.log('[TESTER] Loading model...');
       setModelLoading(true);
       setError("");
+      
+      // Dispose previous pipeline if exists
+      if (pipelineRef.current) {
+        console.log('[TESTER] Liberando recursos del modelo anterior...');
+        try {
+          if (typeof pipelineRef.current.dispose === 'function') {
+            await pipelineRef.current.dispose();
+          }
+        } catch (disposeErr) {
+          console.warn('[TESTER] Error al liberar recursos:', disposeErr);
+        }
+        pipelineRef.current = null;
+      }
       
       // Clear previous state
       setExtractor(null);
       setCategoryEmbeddings(null);
       setTestResults([]);
 
-      // Wait for transformers.js
-      let attempts = 0;
-      while (!(window as any).transformers && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      if (!(window as any).transformers) {
-        throw new Error('Transformers.js not loaded from CDN');
-      }
-
-      const { pipeline, env } = (window as any).transformers;
-      console.log('[TEST] Transformers.js available');
+      console.log('[TESTER] Transformers.js available via npm');
 
       env.allowRemoteModels = true;
       env.allowLocalModels = false;
       
       // Load embedding model
-      console.log(`[TEST] Loading model: ${selectedModel.name}...`);
+      console.log(`[TESTER] Loading model: ${selectedModel.name}...`);
+      const pipelineStartTime = performance.now();
       const pipe = await pipeline(
         'feature-extraction',
         selectedModel.huggingFaceId,
         {
+          device: webGPUSupported ? 'webgpu' : 'wasm',
           progress_callback: (progress: any) => {
-            console.log('[TEST PROGRESS]', progress);
+            console.log('[TESTER PROGRESS]', progress);
           }
         }
       );
+      const pipelineLoadTime = performance.now() - pipelineStartTime;
+      console.log(`[TESTER] ⏱️ Pipeline loaded in ${pipelineLoadTime.toFixed(2)}ms`);
 
       if (typeof pipe !== 'function') {
         throw new Error(`Pipeline is not callable. Type: ${typeof pipe}`);
       }
 
       // Test pipeline
-      console.log('[TEST] Testing pipeline...');
+      console.log('[TESTER] Testing pipeline...');
+      const testStartTime = performance.now();
       await pipe('test');
-      console.log('[TEST] Pipeline working correctly');
+      const testTime = performance.now() - testStartTime;
+      console.log(`[TESTER] ⏱️ Pipeline working correctly. Test inference: ${testTime.toFixed(2)}ms`);
 
       // Generate embeddings for all categories
-      console.log('[TEST] Generating category embeddings...');
+      console.log('[TESTER] Generating category embeddings...');
+      const embeddingsStartTime = performance.now();
       const prefix = selectedModel.requiresPrefixes ? 'passage: ' : '';
       const embeddingsPromises = categoryLabels.map(label => pipe(`${prefix}${label}`));
       const embeddings = await Promise.all(embeddingsPromises);
-      console.log('[TEST] Embeddings generated:', embeddings.length);
+      const embeddingsTime = performance.now() - embeddingsStartTime;
+      console.log(`[TESTER] ⏱️ Embeddings generated: ${embeddings.length} in ${embeddingsTime.toFixed(2)}ms (${(embeddingsTime/embeddings.length).toFixed(2)}ms/each)`);
 
+      const totalTime = performance.now() - startTime;
+      console.log(`[TESTER] ⏱️ Total model load: ${totalTime.toFixed(2)}ms`);
+
+      pipelineRef.current = pipe;
       setExtractor(() => pipe);
       setCategoryEmbeddings(embeddings);
       setModelLoading(false);
       isLoadingRef.current = false;
-      console.log('[TEST] Model ready');
+      console.log('[TESTER] Model ready');
     } catch (err) {
-      console.error('[TEST ERROR]', err);
+      console.error('[TESTER ERROR]', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(`Error loading model: ${errorMessage}`);
       setModelLoading(false);

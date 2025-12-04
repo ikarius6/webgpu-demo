@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { AlertCircle, Zap, Search, Loader2, Github } from 'lucide-react';
+import { pipeline, env } from '@huggingface/transformers';
 import categoriesData from './categories.json';
 import modelsConfig from './modelsConfig.json';
 import WeightControls from './WeightControls';
@@ -37,6 +38,7 @@ const ServiceClassifier = () => {
   const [selectedModelId, setSelectedModelId] = useState('');
   const [weights, setWeights] = useState({ keyword: 0.35, fuzzy: 0.30, embedding: 0.35 });
   const isLoadingRef = useRef(false);
+  const pipelineRef = useRef<any>(null);
   const availableModels = modelsConfig.models;
   const selectedModel = availableModels.find(m => m.id === selectedModelId);
 
@@ -71,11 +73,36 @@ const ServiceClassifier = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModelId]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pipelineRef.current) {
+        console.log('[CLEANUP] Liberando recursos del pipeline al desmontar...');
+        try {
+          if (typeof pipelineRef.current.dispose === 'function') {
+            pipelineRef.current.dispose();
+          }
+        } catch (err) {
+          console.warn('[CLEANUP] Error al liberar recursos:', err);
+        }
+      }
+    };
+  }, []);
+
   const checkWebGPU = async () => {
+    // Detect Firefox (WebGPU is 21x slower than Chrome)
+    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+    
     if ('gpu' in navigator) {
       try {
         const adapter = await navigator.gpu.requestAdapter();
-        setWebGPUSupported(adapter !== null);
+        const hasWebGPU = adapter !== null;
+        // Use WASM on Firefox even if WebGPU is available (performance reasons)
+        setWebGPUSupported(hasWebGPU && !isFirefox);
+        
+        if (hasWebGPU && isFirefox) {
+          console.log('[WebGPU] Firefox detectado - usando WASM por rendimiento (WebGPU es 21x más lento)');
+        }
       } catch (e) {
         setWebGPUSupported(false);
       }
@@ -103,50 +130,55 @@ const ServiceClassifier = () => {
       setModelLoading(true);
       setError("");
       
+      // Limpiar GPU resources del modelo anterior
+      if (pipelineRef.current) {
+        console.log('[1.1] Liberando recursos del modelo anterior...');
+        try {
+          if (typeof pipelineRef.current.dispose === 'function') {
+            await pipelineRef.current.dispose();
+          }
+        } catch (disposeErr) {
+          console.warn('[1.1] Error al liberar recursos:', disposeErr);
+        }
+        pipelineRef.current = null;
+      }
+      
       // Limpiar estado previo
       setExtractor(null);
       setCategoryEmbeddings(null);
       setResult(null);
 
-      // Esperar a que transformers.js esté disponible en window
-      console.log('[2] Esperando transformers.js desde CDN...');
-      let attempts = 0;
-      while (!(window as any).transformers && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
+      // Transformers.js ya disponible via npm import
+      console.log('[2] Transformers.js disponible via npm');
 
-      if (!(window as any).transformers) {
-        throw new Error('Transformers.js no se cargó desde el CDN');
-      }
-
-      const { pipeline, env } = (window as any).transformers;
-      console.log('[3] Transformers.js disponible');
-
-      // Configurar el entorno de transformers.js (usar defaults)
-      console.log('[4] Configurando entorno...');
+      // Configurar el entorno de transformers.js
+      console.log('[3] Configurando entorno...');
       env.allowRemoteModels = true;
       env.allowLocalModels = false;
-      console.log('[5] Configuración aplicada (usar defaults):', {
+      console.log('[4] Configuración aplicada:', {
         allowRemoteModels: env.allowRemoteModels,
         remoteHost: env.remoteHost,
         remotePathTemplate: env.remotePathTemplate
       });
       
-      // Cargar el modelo de embeddings seleccionado
-      console.log(`[6] Cargando modelo: ${selectedModel.name} (${selectedModel.huggingFaceId})...`);
+      // Cargar el modelo de embeddings seleccionado con WebGPU si está disponible
+      console.log(`[5] Cargando modelo: ${selectedModel.name} (${selectedModel.huggingFaceId})...`);
+      const pipelineStartTime = performance.now();
       const pipe = await pipeline(
         'feature-extraction',
         selectedModel.huggingFaceId,
         {
+          device: webGPUSupported ? 'webgpu' : 'wasm',
           progress_callback: (progress: any) => {
             console.log('[PROGRESS]', progress);
           }
         }
       );
-      console.log('[7] Pipeline cargado exitosamente:', pipe);
-      console.log('[7.1] Tipo de pipe:', typeof pipe);
-      console.log('[7.2] Es Promise?:', pipe instanceof Promise);
+      const pipelineLoadTime = performance.now() - pipelineStartTime;
+      console.log(`[5.1] ⏱️ Pipeline cargado en ${pipelineLoadTime.toFixed(2)}ms`);
+      console.log('[6] Pipeline cargado exitosamente:', pipe);
+      console.log('[6.1] Tipo de pipe:', typeof pipe);
+      console.log('[6.2] Dispositivo:', webGPUSupported ? 'WebGPU' : 'WASM');
 
       // Validar que el pipeline es callable
       if (typeof pipe !== 'function') {
@@ -154,23 +186,28 @@ const ServiceClassifier = () => {
       }
 
       // Hacer una prueba simple para verificar que funciona
-      console.log('[7.5] Probando pipeline con texto de prueba...');
+      console.log('[7] Probando pipeline con texto de prueba...');
       try {
+        const testStartTime = performance.now();
         await pipe('test');
-        console.log('[7.6] Pipeline funcionando correctamente');
+        const testInferenceTime = performance.now() - testStartTime;
+        console.log(`[7.1] ⏱️ Pipeline funcionando correctamente. Test inference: ${testInferenceTime.toFixed(2)}ms`);
       } catch (testErr) {
-        console.error('[7.6] Error en prueba de pipeline:', testErr);
+        console.error('[7.1] Error en prueba de pipeline:', testErr);
         throw new Error('Pipeline no pasó la prueba de validación');
       }
 
       // Generar embeddings para todas las categorías
       console.log('[8] Generando embeddings para categorías...');
+      const embeddingsStartTime = performance.now();
       const prefix = selectedModel.requiresPrefixes ? 'passage: ' : '';
       const embeddingsPromises = categoryLabels.map(label => pipe(`${prefix}${label}`));
       const embeddings = await Promise.all(embeddingsPromises);
-      console.log('[9] Embeddings generados:', embeddings.length);
+      const embeddingsTime = performance.now() - embeddingsStartTime;
+      console.log(`[9] ⏱️ Embeddings generados: ${embeddings.length} en ${embeddingsTime.toFixed(2)}ms (${(embeddingsTime/embeddings.length).toFixed(2)}ms/embedding)`);
 
-      // Usar callback setter para evitar conflictos de estado
+      // Guardar referencia del pipeline y actualizar estado
+      pipelineRef.current = pipe;
       setExtractor(() => pipe);
       setCategoryEmbeddings(embeddings);
       setModelLoading(false);
@@ -311,6 +348,7 @@ const ServiceClassifier = () => {
     setError("");
 
     try {
+      const classifyStartTime = performance.now();
       console.log('[CLASSIFY] Generando embedding del input...');
       
       // Usar prefijo según el modelo seleccionado
@@ -318,9 +356,13 @@ const ServiceClassifier = () => {
       const prefixedInput = `${queryPrefix}${input}`;
       
       // Generar embedding del input
+      const embeddingStartTime = performance.now();
       const inputEmbedding = await extractor(prefixedInput);
+      const embeddingTime = performance.now() - embeddingStartTime;
+      console.log(`[CLASSIFY] ⏱️ Embedding generado en ${embeddingTime.toFixed(2)}ms`);
       const inputVector = Array.from(inputEmbedding.data) as number[];
       
+      const matchingStartTime = performance.now();
       console.log('[CLASSIFY] Calculando similitudes y fuzzy matches...');
       
       // Multi-matcher strategy: combinar keyword, fuzzy y embedding
@@ -405,6 +447,11 @@ const ServiceClassifier = () => {
         keywordScore: item.keywordScore
       }));
       
+      const matchingTime = performance.now() - matchingStartTime;
+      const totalClassifyTime = performance.now() - classifyStartTime;
+      
+      console.log(`[CLASSIFY] ⏱️ Matching completado en ${matchingTime.toFixed(2)}ms`);
+      console.log(`[CLASSIFY] ⏱️ Clasificación total: ${totalClassifyTime.toFixed(2)}ms`);
       console.log('[CLASSIFY] Top 3 resultados:');
       topResults.slice(0, 3).forEach((r: any, i: number) => {
         console.log(`  ${i+1}. ${r.category}:`, {
@@ -457,7 +504,10 @@ const ServiceClassifier = () => {
             <div className="flex items-center gap-2">
               <Zap className={`w-5 h-5 ${webGPUSupported ? 'text-green-500' : 'text-orange-500'}`} />
               <span className="text-sm font-medium">
-                WebGPU: {webGPUSupported === null ? 'Verificando...' : webGPUSupported ? 'Soportado ' : 'No disponible (usando CPU)'}
+                {webGPUSupported === null ? 'Verificando...' : 
+                 webGPUSupported ? 'WebGPU activado' : 
+                 navigator.userAgent.toLowerCase().includes('firefox') ? 'Usando WASM (optimizado para Firefox)' :
+                 'WebGPU no disponible (usando WASM)'}
               </span>
             </div>
           </div>

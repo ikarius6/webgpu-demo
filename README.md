@@ -176,8 +176,9 @@ Prueba con estas consultas:
 - **Lucide React** - Iconos SVG
 
 ### IA/ML
-- **Transformers.js 2.17.2** - Modelos de ML en el navegador
-- **WebGPU** - Aceleración por GPU
+- **@huggingface/transformers** (npm package) - Modelos de ML en el navegador
+- **WebGPU** - Aceleración por GPU (Chrome, Edge, Opera)
+- **WASM** - Fallback automático para Firefox y navegadores sin WebGPU
 - **Multi-Matcher Strategy** - Sistema de 3 algoritmos combinados
 - **Embeddings Multilingües** - Soporte para múltiples modelos (E5, MiniLM)
 - **Levenshtein Distance** - Algoritmo de fuzzy matching
@@ -277,42 +278,75 @@ Editar `src/modelsConfig.json`:
 - `dimensions`: Dimensiones del vector embedding (384 o 768 típicamente)
 - `requiresPrefixes`: `true` solo para modelos E5 (requieren "query:"/"passage:")
 - `description`: Breve descripción para el usuario
-- `recommended`: `true` para marcar con ⭐ en el selector
-- `category`: Familia del modelo (E5, MiniLM, BGE, etc.)
-
 ## 🌐 Compatibilidad de Navegadores
 
-| Navegador | WebGPU | CPU Fallback |
-|-----------|--------|--------------|
-| Chrome 113+ | ✅ | ✅ |
-| Edge 113+ | ✅ | ✅ |
-| Opera 99+ | ✅ | ✅ |
-| Firefox | ❌ (experimental) | ✅ |
-| Safari | ⚠️ (experimental) | ✅ |
+| Navegador | Dispositivo Usado | Rendimiento | Nota |
+|-----------|------------------|-------------|------|
+| Chrome 113+ | WebGPU | ⚡ Excelente | Recomendado |
+| Edge 113+ | WebGPU | ⚡ Excelente | Recomendado |
+| Opera 99+ | WebGPU | ⚡ Excelente | Recomendado |
+| Firefox | WASM (automático) | ✅ Bueno | WebGPU experimental 21x más lento |
+| Safari | WASM | ✅ Bueno | WebGPU experimental |
 
-**Nota**: Si WebGPU no está disponible, la aplicación funciona automáticamente con CPU (más lento pero funcional).
+### 🦊 Optimización Automática para Firefox
+
+La aplicación **detecta automáticamente Firefox** y usa WASM en lugar de WebGPU por razones de rendimiento:
+
+**Problema Identificado:**
+- WebGPU en Firefox (experimental) es **21x más lento** que Chrome
+- Embeddings: 120ms/cada en Firefox WebGPU vs 5.76ms/cada en Chrome WebGPU
+
+**Solución Implementada:**
+- Detección automática de Firefox mediante `navigator.userAgent`
+- Fallback a WASM (q8 quantizado) sin intervención del usuario
+- WASM en Firefox: 12.20ms/embedding (solo **2.1x más lento** que Chrome WebGPU)
+- Beneficio adicional: modelos más ligeros (22.9MB vs 90.3MB)
+
+**Resultado:**
+- Firefox obtiene **10x mejor rendimiento** usando WASM vs su WebGPU experimental
+- Los usuarios de Firefox no necesitan hacer nada - el cambio es automático
+- La UI muestra "Usando WASM (optimizado para Firefox)" para transparencia
+
+**Benchmark Comparativo (All-MiniLM L6 v2):**
+
+| Navegador | Device | Por Embedding | Total (334 cats) | vs Chrome WebGPU |
+|-----------|--------|---------------|------------------|------------------|
+| Chrome | WebGPU (fp32) | 5.76ms | 1,924ms | Baseline |
+| Firefox | WASM (q8) | 12.20ms | 4,076ms | 2.1x más lento ✅ |
+| ~~Firefox~~ | ~~WebGPU~~ | ~~120.95ms~~ | ~~40,397ms~~ | ~~21x más lento~~ ❌ |
 
 ## 📊 Rendimiento
 
-**Carga del Modelo** (varía según tamaño y familia):
+### Carga del Modelo (varía según tamaño y navegador)
 
-| Modelo | Tamaño | Primera Carga | Con Caché |
-|--------|--------|---------------|-----------|
-| All-MiniLM L6 v2 ⭐ | 23MB | ~2-4s | ~1s |
-| Paraphrase MiniLM L6 | 23MB | ~2-4s | ~1s |
-| All-MiniLM L12 v2 | 66MB | ~4-7s | ~1-2s |
-| Multilingual E5 Small | 118MB | ~6-10s | ~2-3s |
-| Paraphrase Multilingual | 118MB | ~6-10s | ~2-3s |
-| BGE/GTE Small | 133MB | ~7-11s | ~2-3s |
-| Multilingual E5 Base | 278MB | ~12-18s | ~3-5s |
-| All-MPNet/BGE Base | 438MB | ~20-30s | ~5-8s |
+**Chrome/Edge/Opera (WebGPU fp32):**
 
-**Clasificación:**
-- **Con WebGPU**: <200ms
-- **Con CPU**: ~500ms-1s
+| Modelo | Tamaño | Primera Carga | Con Caché | Embeddings (334 cats) |
+|--------|--------|---------------|-----------|----------------------|
+| All-MiniLM L6 v2 ⭐ | 90.3MB | ~3-5s | ~1s | 1,924ms (5.76ms/cada) |
+| Paraphrase MiniLM L6 | 90.3MB | ~3-5s | ~1s | ~2s |
+| All-MiniLM L12 v2 | 185MB | ~5-8s | ~1-2s | ~3s |
+| Multilingual E5 Small | 280MB | ~8-12s | ~2-3s | ~4s |
+| BGE/GTE Small | 310MB | ~10-14s | ~2-3s | ~4s |
+| Multilingual E5 Base | 670MB | ~15-20s | ~3-5s | ~6s |
+| All-MPNet/BGE Base | 1.1GB | ~25-35s | ~5-8s | ~8s |
+
+**Firefox (WASM q8 automático):**
+
+| Modelo | Tamaño | Primera Carga | Con Caché | Embeddings (334 cats) |
+|--------|--------|---------------|-----------|----------------------|
+| All-MiniLM L6 v2 ⭐ | 22.9MB | ~2-3s | ~700ms | 4,076ms (12.20ms/cada) |
+| Otros modelos | ~4x más ligeros | Más rápido | Más rápido | ~2-3x más lento que Chrome |
+
+**Clasificación en Tiempo Real:**
+- **Chrome WebGPU**: 5-10ms por embedding
+- **Firefox WASM**: 12-20ms por embedding
+- **Clasificación completa**: <200ms en ambos navegadores
 - **Score breakdown**: incluido en UI sin impacto perceptible
 
-**Recomendación:** Para balance entre velocidad y calidad, usa **All-MiniLM L6 v2** (23MB, recomendado).
+**Recomendación:**
+- Para **Chrome/Edge/Opera**: **All-MiniLM L6 v2** (23MB recomendado, máximo rendimiento)
+- Para **Firefox**: La app usa automáticamente WASM (10x más rápido que su WebGPU experimental)
 
 ## 🔧 Solución de Problemas
 
@@ -323,12 +357,16 @@ Editar `src/modelsConfig.json`:
 3. Limpiar caché del navegador y reintentar
 4. Verificar que el CDN de jsDelivr esté accesible
 
-### WebGPU no se detecta
+### WebGPU no se detecta o Firefox es lento
 
-1. Usar Chrome/Edge actualizado
-2. Habilitar flags experimentales:
+1. **Chrome/Edge/Opera**: Usar versión actualizada (113+)
+2. **Firefox**: La app usa **automáticamente WASM** (más rápido que WebGPU experimental)
+3. Habilitar flags experimentales solo si es necesario:
    - Chrome: `chrome://flags/#enable-unsafe-webgpu`
-3. La app funcionará con CPU de todos modos
+4. Verificar en consola: mensaje "[WebGPU] Firefox detectado - usando WASM por rendimiento"
+5. La UI mostrará el dispositivo en uso:
+   - Chrome: "WebGPU activado"
+   - Firefox: "Usando WASM (optimizado para Firefox)"
 
 ### Resultados imprecisos
 
@@ -387,14 +425,17 @@ ServiceClassifier
 
 ### Flujo de Carga del Modelo
 
-1. Verificar WebGPU disponible
+1. Verificar WebGPU disponible y detectar navegador (Firefox usa WASM automáticamente)
 2. Selección de modelo desde dropdown (configurado en `modelsConfig.json`)
-3. Cargar Transformers.js desde CDN
-4. Crear pipeline de feature-extraction con el modelo seleccionado
+3. Usar `@huggingface/transformers` desde npm package
+4. Crear pipeline de feature-extraction con el modelo y dispositivo adecuado:
+   - Chrome/Edge/Opera: `device: 'webgpu'`
+   - Firefox: `device: 'wasm'` (automático)
 5. Generar embeddings para todas las categorías:
    - Si `requiresPrefixes: true` (E5): agregar prefijo "passage:"
    - Si `false`: usar texto directo
 6. Guardar pipeline y embeddings en estado para reutilizar
+7. Cleanup automático con `dispose()` al cambiar modelo o desmontar componente
 
 ### Flujo de Clasificación
 

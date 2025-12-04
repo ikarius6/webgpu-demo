@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Play, Download, Loader2, BarChart3, AlertCircle } from 'lucide-react';
+import { pipeline, env } from '@huggingface/transformers';
 import categoriesData from './categories.json';
 import testCasesData from './testCases.json';
 import modelsConfig from './modelsConfig.json';
@@ -45,6 +46,8 @@ const ModelComparison = () => {
   const [error, setError] = useState<string>("");
   const [selectedModels, setSelectedModels] = useState<string[]>(['multilingual-e5-small']);
   const [weights, setWeights] = useState({ keyword: 0.35, fuzzy: 0.30, embedding: 0.35 });
+  const [webGPUSupported, setWebGPUSupported] = useState<boolean | null>(null);
+  const pipelineRef = useRef<any>(null);
 
   const categoriesWithSynonyms = categoriesData.items.map(item => ({
     name: item.name,
@@ -56,45 +59,100 @@ const ModelComparison = () => {
   const testCases: TestCase[] = testCasesData.testCases;
   const availableModels: ModelConfig[] = modelsConfig.models;
 
+  useEffect(() => {
+    checkWebGPU();
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pipelineRef.current) {
+        console.log('[COMPARISON CLEANUP] Liberando recursos del pipeline...');
+        try {
+          if (typeof pipelineRef.current.dispose === 'function') {
+            pipelineRef.current.dispose();
+          }
+        } catch (err) {
+          console.warn('[COMPARISON CLEANUP] Error al liberar recursos:', err);
+        }
+      }
+    };
+  }, []);
+
+  const checkWebGPU = async () => {
+    const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+    
+    if ('gpu' in navigator) {
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        const hasWebGPU = adapter !== null;
+        setWebGPUSupported(hasWebGPU && !isFirefox);
+        
+        if (hasWebGPU && isFirefox) {
+          console.log('[COMPARISON] Firefox detectado - usando WASM por rendimiento');
+        }
+      } catch (e) {
+        setWebGPUSupported(false);
+      }
+    } else {
+      setWebGPUSupported(false);
+    }
+  };
+
   const loadModel = async (modelConfig: ModelConfig) => {
     console.log(`[COMPARISON] Loading model: ${modelConfig.name}`);
+    const startTime = performance.now();
 
-    let attempts = 0;
-    while (!(window as any).transformers && attempts < 50) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
+    // Dispose previous pipeline if exists
+    if (pipelineRef.current) {
+      try {
+        if (typeof pipelineRef.current.dispose === 'function') {
+          await pipelineRef.current.dispose();
+        }
+      } catch (err) {
+        console.warn('[COMPARISON] Error disposing previous pipeline:', err);
+      }
+      pipelineRef.current = null;
     }
-
-    if (!(window as any).transformers) {
-      throw new Error('Transformers.js not loaded from CDN');
-    }
-
-    const { pipeline, env } = (window as any).transformers;
     
     env.allowRemoteModels = true;
     env.allowLocalModels = false;
     
+    const pipelineStartTime = performance.now();
     const pipe = await pipeline(
       'feature-extraction',
       modelConfig.huggingFaceId,
       {
+        device: webGPUSupported ? 'webgpu' : 'wasm',
         progress_callback: (progress: any) => {
           console.log(`[${modelConfig.id}]`, progress);
         }
       }
     );
+    const pipelineLoadTime = performance.now() - pipelineStartTime;
+    console.log(`[COMPARISON] ⏱️ Pipeline loaded in ${pipelineLoadTime.toFixed(2)}ms`);
 
     if (typeof pipe !== 'function') {
       throw new Error(`Pipeline is not callable for ${modelConfig.name}`);
     }
 
+    const testStartTime = performance.now();
     await pipe('test');
+    const testTime = performance.now() - testStartTime;
+    console.log(`[COMPARISON] ⏱️ Test inference: ${testTime.toFixed(2)}ms`);
     
     // Generate embeddings for all categories
+    const embeddingsStartTime = performance.now();
     const prefix = modelConfig.requiresPrefixes ? 'passage: ' : '';
     const embeddingsPromises = categoryLabels.map(label => pipe(`${prefix}${label}`));
     const embeddings = await Promise.all(embeddingsPromises);
+    const embeddingsTime = performance.now() - embeddingsStartTime;
+    console.log(`[COMPARISON] ⏱️ Embeddings: ${embeddings.length} in ${embeddingsTime.toFixed(2)}ms (${(embeddingsTime/embeddings.length).toFixed(2)}ms/each)`);
     
+    const totalTime = performance.now() - startTime;
+    console.log(`[COMPARISON] ⏱️ Total model load: ${totalTime.toFixed(2)}ms`);
+    
+    pipelineRef.current = pipe;
     return { pipe, embeddings };
   };
 
